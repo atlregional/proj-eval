@@ -1138,110 +1138,115 @@ function initialize() {
 				csvData[row.ID].data = values;
 			})
 			drawScatter(chartData);
+
+			// get line data
+			d3.json(projUrl, function(error, json) {
+				if (error) return console.warn(error);
+				console.log(json);
+				json.features = _.reject(json.features, function(feature){
+					// console.log(d3.keys(csvMap).indexOf(feature.properties.ID));
+					return d3.keys(csvMap).indexOf(feature.properties.ID) === -1;
+				});
+				var geoJSON = json;
+				data = json;
+				console.log(geoJSON);
+				console.log(data);
+				projMap = d3.nest()
+					.key(function(d) { return d.properties.PRJ_TYPE; })
+					.map(json.features);
+				geomMap = d3.nest()
+					.key(function(d) { return d.geometry.type; })
+					.map(json.features);
+				console.log(geomMap);
+				var domain = Object.keys(projMap);
+				domain.push(undefined);
+				colorScale = d3.scale.threshold()
+		              .domain(domain)
+		              .range(colorbrewer.Accent[7]);
+				console.log(projMap)
+				var stations = [];
+				counters = L.geoJson(geoJSON, {
+					style: function(feature){
+						var color = colorScale(feature.properties.PRJ_TYPE);
+						// console.log(color);
+						if (typeof color === 'undefined'){
+							color = 'blue'
+						}
+						return {
+							color: color,
+							fillColor: color,
+							stroke: true,
+							weight: 5,
+						};
+					},
+					onEachFeature: function(feature, layer){
+						layer.on({
+							click: function(e){
+								console.log(feature);
+								getStationData(layer);
+								// map.panTo(layer.getLatLng());
+							}
+						});
+						stations.push(feature.properties.id);
+						if (typeof params.id !== 'undefined' && params.id === feature.properties.id){
+							currentLayer = layer;
+						}
+					}
+				}).addTo(map);
+				console.log(counters);
+				map.fitBounds(counters.getBounds());
+				if (typeof currentLayer !== 'undefined'){
+					getStationData(currentLayer);
+				}
+				legend.onAdd = function (map) {
+
+					var div = L.DomUtil.create('div', 'info legend row');
+					var innerDiv = $('')
+					// div.style.width ='400px';
+					// div.innerHTML += '<div style="width:200px;">';
+					div.innerHTML += '<h4>Counter technology</h4>';
+
+					var tech = Object.keys(technology);
+
+				    for (var i = 0; i < tech.length; i++) {
+				        div.innerHTML +=
+				            '<i class="circle" style="background:' + technology[tech[i]].color + '"></i> ' +
+				             (tech[i] ? technology[tech[i]].label + '<br>' : '+');
+				    }
+				    // div.innerHTML += 'some other content';
+				    // div.innerHTML += '</div><div class=""pull-right style="width:200px;">'
+				    // div.innerHTML += '<h4>Days of counting</h4>';
+
+					// var tech = Object.keys(technology);
+				    
+
+				 //    for (var i = 0; i < opacities.length; i++) {
+				 //        div.innerHTML +=
+				 //            '<i class="circle" style="background: grey; opacity:'+opacities[i].value+'"></i> < ' +
+				 //             (opacities[i].label ? opacities[i].label + '<br>' : '+');
+				 //    }
+				 //    div.innerHTML += '</div>';
+				    return div;
+				};
+				legend.addTo(map);
+				opacityLegend.onAdd = function (map) {
+
+					var div = L.DomUtil.create('div', 'info legend');
+					div.innerHTML += '<h4>Days of counting</h4>';
+
+					var tech = Object.keys(technology);
+				    
+
+				    for (var i = 0; i < opacities.length; i++) {
+				        div.innerHTML +=
+				            '<i class="circle" style="background: grey; opacity:'+opacities[i].value+'"></i> < ' +
+				             (opacities[i].label ? opacities[i].label + '<br>' : '+');
+				    }
+
+				    return div;
+				};
+				opacityLegend.addTo(map);
+			});
 		}
 	);
-	// .row(function(d, row) { return {id: d3.values(d)}; })
-	// .get(function(error, rows) { console.log(rows); });
-	d3.json(projUrl, function(error, json) {
-		if (error) return console.warn(error);
-		var geoJSON = json;
-		data = json;
-		console.log(geoJSON);
-		console.log(data);
-		projMap = d3.nest()
-			.key(function(d) { return d.properties.PRJ_TYPE; })
-			.map(json.features);
-		geomMap = d3.nest()
-			.key(function(d) { return d.geometry.type; })
-			.map(json.features);
-		console.log(geomMap);
-		var domain = Object.keys(projMap);
-		domain.push(undefined);
-		colorScale = d3.scale.threshold()
-              .domain(domain)
-              .range(colorbrewer.Accent[7]);
-		console.log(projMap)
-		var stations = [];
-		counters = L.geoJson(geoJSON, {
-			style: function(feature){
-				var color = colorScale(feature.properties.PRJ_TYPE);
-				// console.log(color);
-				if (typeof color === 'undefined'){
-					color = 'blue'
-				}
-				return {
-					color: color,
-					fillColor: color,
-					stroke: true,
-					weight: 5,
-				};
-			},
-			onEachFeature: function(feature, layer){
-				layer.on({
-					click: function(e){
-						console.log(feature);
-						getStationData(layer);
-						// map.panTo(layer.getLatLng());
-					}
-				});
-				stations.push(feature.properties.id);
-				if (typeof params.id !== 'undefined' && params.id === feature.properties.id){
-					currentLayer = layer;
-				}
-			}
-		}).addTo(map);
-		console.log(counters);
-		map.fitBounds(counters.getBounds());
-		if (typeof currentLayer !== 'undefined'){
-			getStationData(currentLayer);
-		}
-		legend.onAdd = function (map) {
-
-			var div = L.DomUtil.create('div', 'info legend row');
-			var innerDiv = $('')
-			// div.style.width ='400px';
-			// div.innerHTML += '<div style="width:200px;">';
-			div.innerHTML += '<h4>Counter technology</h4>';
-
-			var tech = Object.keys(technology);
-
-		    for (var i = 0; i < tech.length; i++) {
-		        div.innerHTML +=
-		            '<i class="circle" style="background:' + technology[tech[i]].color + '"></i> ' +
-		             (tech[i] ? technology[tech[i]].label + '<br>' : '+');
-		    }
-		    // div.innerHTML += 'some other content';
-		    // div.innerHTML += '</div><div class=""pull-right style="width:200px;">'
-		    // div.innerHTML += '<h4>Days of counting</h4>';
-
-			// var tech = Object.keys(technology);
-		    
-
-		 //    for (var i = 0; i < opacities.length; i++) {
-		 //        div.innerHTML +=
-		 //            '<i class="circle" style="background: grey; opacity:'+opacities[i].value+'"></i> < ' +
-		 //             (opacities[i].label ? opacities[i].label + '<br>' : '+');
-		 //    }
-		 //    div.innerHTML += '</div>';
-		    return div;
-		};
-		legend.addTo(map);
-		opacityLegend.onAdd = function (map) {
-
-			var div = L.DomUtil.create('div', 'info legend');
-			div.innerHTML += '<h4>Days of counting</h4>';
-
-			var tech = Object.keys(technology);
-		    
-
-		    for (var i = 0; i < opacities.length; i++) {
-		        div.innerHTML +=
-		            '<i class="circle" style="background: grey; opacity:'+opacities[i].value+'"></i> < ' +
-		             (opacities[i].label ? opacities[i].label + '<br>' : '+');
-		    }
-
-		    return div;
-		};
-		opacityLegend.addTo(map);
-	});
 }
