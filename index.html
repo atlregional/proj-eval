@@ -214,56 +214,64 @@
 	          </ul>
 		        <form class="navbar-form" role="search">
 		        <!-- <button type="button" class="pull-right btn btn-default filter" style="" disabled="disabled" id="clear-dates">clear</button> -->
-		            <p id="filter-statement">
-						Show me 
-						<select type="text" id="xVariable" style="width:200px" class="form-control scatterVariable" >
-							<option value="County">County</option>
-							<option value="ID">ID</option>
-							<option value="Future Congestion">Future Congestion</option>
-							<option value="Future Accessibility">Future Accessibility</option>
-							<option value="Future Freight">Future Freight</option>
-							<option value="Future Deliverability">Future Deliverability</option>
-							<option value="Future Air Quality">Future Air Quality</option>
-							<option value="Future Volume">Future Volume</option>
-							<option value="Future Score">Future Score</option>
-							<option value="Current Congestion">Current Congestion</option>
-							<option value="Current Safety">Current Safety</option>
-							<option value="Current Freight">Current Freight</option>
-							<option value="Current Buffer Index">Current Buffer Index</option>
-							<option value="Current Equitable Target Areas">Current Equitable Target Areas</option>
-							<option value="Current Air Quality">Current Air Quality</option>
-							<option value="Current Accessibility">Current Accessibility</option>
-							<option value="Current Score" selected>Current Score</option>
-							<option value="BC 2015">BC 2015</option>
-							<option value="BC 2040">BC 2040</option>
-							<option value="Annual Benefit 2040">Annual Benefit 2040</option>
-							<option value="Annual Cost">Annual Cost</option>
-						</select> 
-						vs.
-						<select type="text" id="yVariable" style="width:200px" class="form-control scatterVariable" >
-							<option value="County">County</option>
-							<option value="ID">ID</option>
-							<option value="Future Congestion">Future Congestion</option>
-							<option value="Future Accessibility">Future Accessibility</option>
-							<option value="Future Freight">Future Freight</option>
-							<option value="Future Deliverability">Future Deliverability</option>
-							<option value="Future Air Quality">Future Air Quality</option>
-							<option value="Future Volume">Future Volume</option>
-							<option value="Future Score" selected>Future Score</option>
-							<option value="Current Congestion">Current Congestion</option>
-							<option value="Current Safety">Current Safety</option>
-							<option value="Current Freight">Current Freight</option>
-							<option value="Current Buffer Index">Current Buffer Index</option>
-							<option value="Current Equitable Target Areas">Current Equitable Target Areas</option>
-							<option value="Current Air Quality">Current Air Quality</option>
-							<option value="Current Accessibility">Current Accessibility</option>
-							<option value="Current Score">Current Score</option>
-							<option value="BC 2015">BC 2015</option>
-							<option value="BC 2040">BC 2040</option>
-							<option value="Annual Benefit 2040">Annual Benefit 2040</option>
-							<option value="Annual Cost">Annual Cost</option>
-						</select>
-						vs.
+		            <!-- <p id="filter-statement">
+						Show me  -->
+						<div class="form-group">
+							<label class="control-label" for="xVariable">x</label>
+							<select type="text" id="xVariable" style="width:200px" class="form-control scatterVariable" >
+								<option value="County">County</option>
+								<option value="ID">ID</option>
+								<option value="Future Congestion">Future Congestion</option>
+								<option value="Future Accessibility">Future Accessibility</option>
+								<option value="Future Freight">Future Freight</option>
+								<option value="Future Deliverability">Future Deliverability</option>
+								<option value="Future Air Quality">Future Air Quality</option>
+								<option value="Future Volume">Future Volume</option>
+								<option value="Future Score">Future Score</option>
+								<option value="Current Congestion">Current Congestion</option>
+								<option value="Current Safety">Current Safety</option>
+								<option value="Current Freight">Current Freight</option>
+								<option value="Current Buffer Index">Current Buffer Index</option>
+								<option value="Current Equitable Target Areas">Current Equitable Target Areas</option>
+								<option value="Current Air Quality">Current Air Quality</option>
+								<option value="Current Accessibility">Current Accessibility</option>
+								<option value="Current Score" selected>Current Score</option>
+								<option value="BC 2015">BC 2015</option>
+								<option value="BC 2040">BC 2040</option>
+								<option value="Annual Benefit 2040">Annual Benefit 2040</option>
+								<option value="Annual Cost">Annual Cost</option>
+							</select> 
+						</div>
+						<!-- vs. -->
+						<div class="form-group">
+							<label class="control-label" for="yVariable">y</label>
+							<select type="text" id="yVariable" style="width:200px" class="form-control scatterVariable" >
+								<option value="County">County</option>
+								<option value="ID">ID</option>
+								<option value="Future Congestion">Future Congestion</option>
+								<option value="Future Accessibility">Future Accessibility</option>
+								<option value="Future Freight">Future Freight</option>
+								<option value="Future Deliverability">Future Deliverability</option>
+								<option value="Future Air Quality">Future Air Quality</option>
+								<option value="Future Volume">Future Volume</option>
+								<option value="Future Score" selected>Future Score</option>
+								<option value="Current Congestion">Current Congestion</option>
+								<option value="Current Safety">Current Safety</option>
+								<option value="Current Freight">Current Freight</option>
+								<option value="Current Buffer Index">Current Buffer Index</option>
+								<option value="Current Equitable Target Areas">Current Equitable Target Areas</option>
+								<option value="Current Air Quality">Current Air Quality</option>
+								<option value="Current Accessibility">Current Accessibility</option>
+								<option value="Current Score">Current Score</option>
+								<option value="BC 2015">BC 2015</option>
+								<option value="BC 2040">BC 2040</option>
+								<option value="Annual Benefit 2040">Annual Benefit 2040</option>
+								<option value="Annual Cost">Annual Cost</option>
+							</select>
+						</div>
+						<!-- vs. -->
+						<div class="form-group">
+							<label class="control-label" for="rVariable">radius</label>
 						<select type="text" id="rVariable" style="width:200px" class="form-control scatterVariable" >
 							<option value="County">County</option>
 							<option value="ID">ID</option>
@@ -287,7 +295,10 @@
 							<option value="Annual Benefit 2040">Annual Benefit 2040</option>
 							<option value="Annual Cost">Annual Cost</option>
 						</select> 
-						vs.
+						</div>
+						<!-- vs. -->
+						<div class="form-group">
+							<label class="control-label" for="colorVariable">color</label>
 						<select type="text" id="colorVariable" style="width:200px" class="form-control scatterVariable" >
 							<option value="County">County</option>
 							<option value="ID">ID</option>
@@ -311,12 +322,13 @@
 							<option value="Annual Benefit 2040">Annual Benefit 2040</option>
 							<option value="Annual Cost">Annual Cost</option>
 						</select> 
+						</div>
 						<!-- <button class="btn btn-default single filter has-spinner" id="go-button" type="button">
 							Go!
 						</button> -->
 						
 						<!-- <button class=" btn btn-default btn-xs" id="collapse-button" style="width:20px; margin-top:10px;" type="button" data-toggle="collapse" data-target="#collapseExample" aria-expanded="false" aria-controls="collapseExample">+</button> -->
-					</p>
+					<!-- </p> -->
 					<div id="collapseExample" class="collapse form-inline" style="">
 						<div class="form-group" style="" >
 							<select multiple class="form-control special filter" id="date"></select>
