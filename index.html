@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name=viewport content="width=device-width, initial-scale=1">
+<html>
+<head>
+	<title>ARC Active Counts Map</title>
+	<script src="bower_components/jquery/dist/jquery.min.js"></script>
+	<script type="text/javascript" src="bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
+	<script type="text/javascript" src="bower_components/seiyria-bootstrap-slider/dist/bootstrap-slider.min.js"></script>
+	<script src="bower_components/tabletop/src/tabletop.js"></script>
+	<script src="bower_components/sheetsee/js/sheetsee.js"></script>
+	<script src="bower_components/moment/min/moment.min.js"></script>
+	<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/3.9.3/lodash.min.js"></script>
+	<script src="bower_components/d3/d3.min.js"></script>
+	<script src="bower_components/d3/colorbrewer.js"></script>
+	<script src="http://code.highcharts.com/highcharts.js"></script>
+	<script src="http://code.highcharts.com/modules/exporting.js"></script>
+	<script src="assets/js/export-csv.js"></script>
+
+	<script src='https://api.tiles.mapbox.com/mapbox.js/v2.1.9/mapbox.js'></script>
+	<script src='assets/js/leaflet.tooltip.js'></script>
+	<link href='https://api.tiles.mapbox.com/mapbox.js/v2.1.9/mapbox.css' rel='stylesheet' />
+	<link rel="stylesheet" type="text/css" href="bower_components/weather-icons/css/weather-icons.min.css">
+	<link rel="stylesheet" type="text/css" href="bower_components/bootstrap/dist/css/bootstrap.min.css">
+	<link rel="stylesheet" type="text/css" href="bower_components/seiyria-bootstrap-slider/dist/css/bootstrap-slider.min.css">
+	<link rel="stylesheet" type="text/css" href="assets/css/leaflet.tooltip.css">
+	<link href='http://fonts.googleapis.com/css?family=Droid+Serif:400,700,400italic,700italic' rel='stylesheet' type='text/css'>
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+	<style type="text/css">
+		body {
+			padding-top: 51px;
+            margin: 0;
+        }
+        html, body {
+            height: 100%;
+            width: 100%;
+        }
+        #map {
+            height: 100%;
+            /*width: 50%;*/
+        }
+        #container {
+        	height: 100%;
+        	width: 100%;
+        	overflow: hidden;
+        }
+	    a {border: none;}
+	    #chart {
+	    	height:80%;
+	    	/*opacity:0.8;*/
+	    	/*position: absolute;*/
+	    	/*float: right;*/
+	    	/*bottom: 0px;*/
+	    	width: 100%;
+	    	/*display: none;*/
+	    }
+	    .vertical-center {
+			min-height: 100%;  /* Fallback for browsers do NOT support vh unit */
+			min-height: 100vh; /* These two lines are counted as one :-)       */
+
+			display: flex;
+			align-items: center;
+		}
+	    .info {
+		    padding: 6px 8px;
+		    font: 14px/16px 'Droid Serif', serif;
+		    background: white;
+		    background: rgba(255,255,255,0.8);
+		    box-shadow: 0 0 15px rgba(0,0,0,0.2);
+		    border-radius: 5px;
+		}
+		.info .info-controls h4 {
+		    margin: 0 0 5px;
+		    color: #777;
+		}
+		.info-controls {
+		    padding: 10px;
+		    font: 14px/16px 'Droid Serif', serif;
+		    background: white;
+		    background: rgba(255,255,255,1.0);
+		    box-shadow: 0 0 15px rgba(0,0,0,0.2);
+		    border-radius: 5px;
+		    position:absolute; z-index:100; bottom:10px; left:10px;
+		    width: 650px;
+		}
+	    .legend {
+		    line-height: 18px;
+		    color: #555;
+		}
+		.legend i {
+		    width: 18px;
+		    height: 18px;
+		    float: left;
+		    margin-right: 8px;
+		    opacity: 0.7;
+		}
+		.legend .circle {
+		  border-radius: 50%;
+		  opacity:  1.0;
+		  width: 15px;
+		  height: 15px;
+		  margin-top: 0px;
+		}
+		#select-box {
+			border-style: dotted;
+			border-width: thin;
+			padding: 3px;
+			/*height: 200px;*/
+		}
+		#select-box h1{
+		    text-align: center;
+		    margin-top: -5px;
+		    height: 5px;
+		    line-height: 5px;
+		    font-size: 15px;
+		}
+
+		#select-box h1 span{
+		    background-color: white;
+		    opa
+		}
+		.input-simple:focus {
+			outline:0;
+		}
+		.input-simple {
+			border:0;
+    		border-bottom: 2px dotted;
+    		border-bottom-width: thin;
+		}
+		input label {
+			display: inline-block !important;
+		}
+		#filter-statement {
+			font-style: italic;
+			font-family: 'Droid Serif', serif;
+		}
+		select {
+			/*font-family: 'Helvetica', 'Arial' !important;*/
+			font-style: normal;
+		}
+		.spinner {
+		  display: inline-block;
+		  opacity: 0;
+		  width: 0;
+
+		  -webkit-transition: opacity 0.25s, width 0.25s;
+		  -moz-transition: opacity 0.25s, width 0.25s;
+		  -o-transition: opacity 0.25s, width 0.25s;
+		  transition: opacity 0.25s, width 0.25s;
+		}
+
+		.has-spinner.active {
+		  cursor:progress;
+		}
+
+		.has-spinner.active .spinner {
+		  opacity: 1;
+		  width: auto; /* This doesn't work, just fix for unkown width elements */
+		}
+
+		.has-spinner.btn-mini.active .spinner {
+		    width: 10px;
+		}
+
+		.has-spinner.btn-small.active .spinner {
+		    width: 13px;
+		}
+
+		.has-spinner.btn.active .spinner {
+		    width: 16px;
+		}
+
+		.has-spinner.btn-large.active .spinner {
+		    width: 19px;
+		}
+		.leaflet-tooltip p {
+			font-size: x-small;
+			margin: 0;
+		}
+		.verticalLine {
+		    border-left: thick solid #ff0000;
+		}
+	</style>
+</head>
+<body>
+	<nav class="navbar navbar-default navbar-fixed-top" >
+  <div class="container">
+    <div class="container">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="http://atlantaregional.com"><img width="40" height="17" src="assets/img/arc_logo@2x.png"></a>
+        </div>
+
+        <div id="navbar" class="navbar-collapse collapse">
+	          <ul class="nav navbar-nav">
+	            <!-- <li class="dropdown">
+	              <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Dropdown <span class="caret"></span></a>
+	              <ul class="dropdown-menu">
+		                <li><a href="#">Action</a></li>
+		                <li><a href="#">Another action</a></li>
+		                <li><a href="#">Something else here</a></li>
+		                <li role="separator" class="divider"></li>
+		                <li class="dropdown-header">Nav header</li>
+		                <li><a href="#">Separated link</a></li>
+		                <li><a href="#">One more separated link</a></li>
+	              </ul>
+	            </li> -->
+	          </ul>
+		        <form class="navbar-form" role="search">
+		        <button type="button" class="pull-right btn btn-default filter" style="" disabled="disabled" id="clear-dates">clear</button>
+		            <p id="filter-statement">
+						Show me 
+						<!-- <input type="text" style="width:40px" class="input-simple" placeholder="bike"> -->
+						<select type="text" id="xVariable" class="form-control scatterVariable" >
+							<option value="County">County</option>
+							<option value="ID">ID</option>
+							<option value="Future Congestion">Future Congestion</option>
+							<option value="Future Accessibility">Future Accessibility</option>
+							<option value="Future Freight">Future Freight</option>
+							<option value="Future Deliverability">Future Deliverability</option>
+							<option value="Future Air Quality">Future Air Quality</option>
+							<option value="Future Volume">Future Volume</option>
+							<option value="Future Score">Future Score</option>
+							<option value="Current Congestion">Current Congestion</option>
+							<option value="Current Safety">Current Safety</option>
+							<option value="Current Freight">Current Freight</option>
+							<option value="Current Buffer Index">Current Buffer Index</option>
+							<option value="Current Equitable Target Areas">Current Equitable Target Areas</option>
+							<option value="Current Air Quality">Current Air Quality</option>
+							<option value="Current Accessibility">Current Accessibility</option>
+							<option value="Current Score" selected>Current Score</option>
+							<option value="BC 2015">BC 2015</option>
+							<option value="BC 2040">BC 2040</option>
+							<option value="Annual Benefit 2040">Annual Benefit 2040</option>
+							<option value="Annual Cost">Annual Cost</option>
+						</select> 
+						vs.
+						<select type="text" id="yVariable" class="form-control scatterVariable" >
+							<option value="County">County</option>
+							<option value="ID">ID</option>
+							<option value="Future Congestion">Future Congestion</option>
+							<option value="Future Accessibility">Future Accessibility</option>
+							<option value="Future Freight">Future Freight</option>
+							<option value="Future Deliverability">Future Deliverability</option>
+							<option value="Future Air Quality">Future Air Quality</option>
+							<option value="Future Volume">Future Volume</option>
+							<option value="Future Score" selected>Future Score</option>
+							<option value="Current Congestion">Current Congestion</option>
+							<option value="Current Safety">Current Safety</option>
+							<option value="Current Freight">Current Freight</option>
+							<option value="Current Buffer Index">Current Buffer Index</option>
+							<option value="Current Equitable Target Areas">Current Equitable Target Areas</option>
+							<option value="Current Air Quality">Current Air Quality</option>
+							<option value="Current Accessibility">Current Accessibility</option>
+							<option value="Current Score">Current Score</option>
+							<option value="BC 2015">BC 2015</option>
+							<option value="BC 2040">BC 2040</option>
+							<option value="Annual Benefit 2040">Annual Benefit 2040</option>
+							<option value="Annual Cost">Annual Cost</option>
+						</select> 
+						<button class="btn btn-default single filter has-spinner" id="go-button" type="button">
+							<!-- <span class="spinner"><i class="fa fa-spinner"></i></span> -->
+							Go!
+						</button>
+						
+						<button class=" btn btn-default btn-xs" id="collapse-button" style="width:20px; margin-top:10px;" type="button" data-toggle="collapse" data-target="#collapseExample" aria-expanded="false" aria-controls="collapseExample">+</button>
+					</p>
+					<div id="collapseExample" class="collapse form-inline" style="">
+						<div class="form-group" style="" >
+							<select multiple class="form-control special filter" id="date"></select>
+							<select multiple class="form-control special filter" id="dow">
+								<option value="0">Sunday</option>
+								<option value="1">Monday</option>
+								<option value="2">Tuesday</option>
+								<option value="3">Wednesday</option>
+								<option value="4">Thursday</option>
+								<option value="5">Friday</option>
+								<option value="6">Saturday</option>
+							</select>
+						</div>
+						<div class="form-group">
+							<select multiple class="form-control special filter" id="season">
+								<option value="0">Winter</option>
+								<option value="1">Spring</option>
+								<option value="2">Summer</option>
+								<option value="3">Fall</option>
+							</select>
+						</div>
+						<div class="form-group">
+							<select multiple class="form-control special filter" id="weather">
+								<option value="rain">Rain</option>
+								<option value="thunder">Thunder</option>
+								<option value="snow">Snow</option>
+								<option value="fog">Fog</option>
+							</select>
+						</div>
+						<input style="width:55px" type="text" class="form-control special filter temp" id="temp" placeholder="90">
+						<div class="radio">
+						  <label>
+						    <input type="radio" name="tempRadios" class="special filter" id="temp-min" value="gte." checked>
+						    min
+						  </label>
+						</div>
+						<div class="radio">
+						  <label>
+						    <input type="radio" name="tempRadios" class="special filter" id="temp-max" value="lte.">
+						    max
+						  </label>
+						</div>
+						<input style="width:40px" id="scale-factor" data-slider-id='scale-factorSlider' type="text" data-slider-min="1" data-slider-max="10" data-slider-step="1"/>
+					</div>
+		        </form>
+	         <!--  <ul class="nav navbar-nav navbar-right">
+	            <li><a href="../navbar/">Default</a></li>
+	            <li class="active"><a href="./">Static top <span class="sr-only">(current)</span></a></li>
+	            <li><a href="../navbar-fixed-top/">Fixed top</a></li>
+	          </ul> -->
+        </div><!--/.nav-collapse -->
+      </div>
+  </div>
+</nav>
+<div id="container">
+	<div id="map"></div>
+</div>
+<script type="text/javascript" src="rtp.js"></script>
+</body>
+
+</html>
