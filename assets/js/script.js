@@ -88,13 +88,15 @@ var csvData = {};
 var regionalData;
 var colorScale;
 var csvMap;
-var xVariable = 'Future Score';
-var yVariable = 'Current Score';
+var xVariable = $('#xVariable').val();
+var yVariable = $('#yVariable').val();
+var rVariable = $('#rVariable').val();
+var colorVariable = $('#colorVariable').val();
 var dataValues;
 var newCsv, csv;
 var csvRows;
 var previousProps = null;
-
+var scales = {};
 info.onAdd = function (map) {
     this._div = L.DomUtil.create('div', 'info'); // create a div with a class "info"
     this.update();
@@ -719,174 +721,6 @@ function checkFilter(count){
 	}
 }
 function drawChart(data, type){
-	console.log(type);
-	console.log(data.data);
-	console.log(data.rains);
-	console.log(data.temps);
-	// $('#chart').show();
-	// Highcharts.seriesTypes.bar.prototype.pointAttrToOptions.dashstyle = 'dashStyle';
-	// $(function () {
-	//     chart_old = $('#container').highcharts({
-	//         chart: {
-	//             zoomType: 'x',
-	//             backgroundColor: 'rgba(255, 255, 255, 0.0)'
-	//         },
-	//         "plotOptions": { 
-	// 	        "column": { "stacking": "normal" } 
-	// 	    },
-	//         title: {
-	//             text: data.description
-	//         },
-	//         subtitle: {
-	//             text: 'Source: Atlanta Regional Commission'
-	//         },
-	//         xAxis: [{
-	//             type: 'datetime',
-	//             dateTimeLabelFormats: {
-	//                 day: '%e %b %y'
-	//             },
-	//             // crosshair: true
-	//         }],
-	//         yAxis: [{ // Primary yAxis
-	//             labels: {
-	//                 format: '{value}°F',
-	//                 style: {
-	//                     color: Highcharts.getOptions().colors[2]
-	//                 }
-	//             },
-	//             title: {
-	//                 text: 'Temperature',
-	//                 style: {
-	//                     color: Highcharts.getOptions().colors[2]
-	//                 }
-	//             },
-	//             min: 0,
-	//             max: 100,
-	//             tickInterval: 25,
-	//             tickAmount: 5,
-	//             endOnTick: true,
-	//             opposite: true,
-	//             plotLines: [{
-	// 	            color: '#90ed7d',
-	// 	            width: 1,
-	// 	            value: 32, // Freezing.
-	// 	            dashStyle: 'dash',
-	// 	            label: {
-	//                     text: '32°F',
-	//                     align: 'right',
-	//                     style: {
-	//                     	fontSize: 'x-small'
-	//                     },
-	//                     y: -4,
-	//                     x: 0
-	//                 }
-	// 	        }]
-
-	//         }, { // Secondary yAxis
-	//             gridLineWidth: 0,
-	//             title: {
-	//                 text: 'Count',
-	//                 style: {
-	//                     color: Highcharts.getOptions().colors[0]
-	//                 }
-	//             },
-	//             labels: {
-	//                 format: '{value}',
-	//                 style: {
-	//                     color: Highcharts.getOptions().colors[0]
-	//                 }
-	//             },
-	//             min: 0,
-	//             tickAmount: 5,
-	//             // tickInterval: 250
-
-	//         }, { // Tertiary yAxis
-	//             gridLineWidth: 0,
-	//             title: {
-	//                 text: 'Rainfall',
-	//                 style: {
-	//                     color: Highcharts.getOptions().colors[1]
-	//                 }
-	//             },
-	//             labels: {
-	//                 format: '{value} in',
-	//                 style: {
-	//                     color: Highcharts.getOptions().colors[1]
-	//                 }
-	//             },
-	//             min: 0,
-	//             tickInterval: 1,
-	//             tickAmount: 5,
-	//             opposite: true
-	//         }],
-	//         tooltip: {
-	//             shared: true
-	//         },
-	//         // legend: {
-	//         //     layout: 'vertical',
-	//         //     align: 'left',
-	//         //     x: 80,
-	//         //     verticalAlign: 'top',
-	//         //     y: 55,
-	//         //     floating: true,
-	//         //     backgroundColor: (Highcharts.theme && Highcharts.theme.legendBackgroundColor) || '#FFFFFF'
-	//         // },
-	//         series: [{
-	//             name: 'Weekdays',
-	//             type: 'column',
-	//             yAxis: 1,
-	//             data: data.weekdays,
-	//             tooltip: {
-	//                 valueSuffix: ' cyclists'
-	//             }
-
-	//         }, 
-	// 		{
-	//             name: 'Weekends',
-	//             type: 'column',
-	//             yAxis: 1,
-	//             color: 'pink',
-	//             data: data.weekends,
-	//             tooltip: {
-	//                 valueSuffix: ' cyclists'
-	//             }
-
-	//         }, 
-	//         // {
-	//         //     name: 'Weekend',
-	//         //     type: 'column',
-	//         //     yAxis: 1,
-	//         //     data: [500],
-	//         //     tooltip: {
-	//         //         valueSuffix: ' cyclists'
-	//         //     }
-
-	//         // },
-	//         {
-	//             name: 'Rainfall',
-	//             type: 'spline',
-	//             yAxis: 2,
-	//             data: data.rains,
-	//             marker: {
-	//                 enabled: false
-	//             },
-	//             dashStyle: 'shortdot',
-	//             tooltip: {
-	//                 valueSuffix: ' inches'
-	//             }
-
-	//         }, 
-
-	//         {
-	//             name: 'Temperature',
-	//             type: 'spline',
-	//             data: data.temps,
-	//             tooltip: {
-	//                 valueSuffix: ' °F'
-	//             }
-	//         }]
-	//     });
-	// });
 
 	chart = $('#chart').highcharts({
 		chart: {
@@ -1022,18 +856,46 @@ jQuery.unparam = function (value) {
 function matchKey(datapoint, key_variable){
 	return(parseFloat(key_variable[0][datapoint]));
 };
+function convertHex(hex,opacity){
+    hex = hex.replace('#','');
+    r = parseInt(hex.substring(0,2), 16);
+    g = parseInt(hex.substring(2,4), 16);
+    b = parseInt(hex.substring(4,6), 16);
 
+    result = 'rgba('+r+','+g+','+b+','+opacity+')';
+    return result;
+}
 function getScatterData(csvRows){
 	xVariable = $('#xVariable').val();
 	yVariable = $('#yVariable').val();
+	rVariable = $('#rVariable').val();
+	colorVariable = $('#colorVariable').val();
 	dataValues = [];
+	var color = 'rgba(223, 83, 83, .5)';
+	var colorDomain = [_.min(csvRows,colorVariable)[colorVariable],_.max(csvRows,colorVariable)[colorVariable]];
+	var maxSize = _.max(csvRows,rVariable)[rVariable];
+
+	console.log(csvRows);
+	// domain.push([]);
+	// var colorScale = d3.scale.linear()
+ //          .domain(domain)
+ //          .range(colorbrewer.RdPu[7]);
+	scales.quantize = d3.scale.quantize()
+	    .domain(colorDomain)
+	    .range(colorbrewer.RdPu[7]);
 	csvRows.forEach(function(row){
+		var pointSize = +row[rVariable] / maxSize * 10;
+		if (typeof scales.quantize !== 'undefined'){
+			color = scales.quantize(+row[colorVariable]);
+			console.log(color);
+		}
 		var totalObject = {
 			y: +row[xVariable],
 			x: +row[yVariable],
-			name: row['ID']
-			// borderColor: borderColorValue,
-			// color: colorValue
+			name: row['ID'],
+			radius: pointSize,
+			color: convertHex(color, 0.5),
+
 		};
 		dataValues.push(totalObject);
 	});
@@ -1064,12 +926,6 @@ function initialize() {
 				// .key(function(d) { return d.ID; })
 				.rollup(function(d){
 					return [
-						// d3.mean(d,function(g) {
-						// 	return g['Annual Cost'];
-						// }),
-						// d3.mean(d,function(g) {
-						// 	return g['County'];
-						// }),
 						d3.mean(d,function(g) {
 							return g['Current Accessibility'];
 						}),
@@ -1109,9 +965,6 @@ function initialize() {
 						d3.mean(d,function(g) {
 							return g['Future Volume'];
 						}),
-						// d3.mean(d,function(g) {
-						// 	return g['ID'];
-						// })
 					];
 				})
 				.map(csv);
