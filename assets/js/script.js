@@ -523,18 +523,21 @@ function resetMarkers(){
 	var layers = counters.getLayers();
 	for (var j = layers.length - 1; j >= 0; j--) {
 		resetMarker(layers[j]);
-
 	}
 }
 function resetMarker(marker){
+	// console.log(csvMap[marker.feature.properties.ID][0]);
+	// console.log(getColorScale(csvMap[marker.feature.properties.ID][0]));
 	marker.setStyle({
-		fill: true,
-		stroke: strokeBool,
+		// fill: true,
+		stroke: true,
+		// fillColor: getColorScale(csvMap[marker.feature.properties.ID]),
+		color: getColorScale(csvMap[marker.feature.properties.ID][0]),
 		// fillOpacity: 1.0,
-		// opacity: 1.0
+		opacity: 0.5
 	});
-	marker.setRadius(3);
-	marker._tooltip.setHtml(marker.feature.properties.id);
+	// marker.setRadius(3);
+	// marker._tooltip.setHtml(marker.feature.properties.id);
 }
 function clearFilter(filter){
 	if (typeof filter === 'undefined'){
@@ -812,9 +815,36 @@ function drawScatter(data){
                 text: data.yLabel
             }
         },
-
+        tooltip: {
+    		formatter: function(){
+    			return '<b>' +this.point.name+'</b><br>' +
+    					data.yLabel + ': '+this.point.y+'<br/>' +
+    					data.yLabel + ': '+this.point.y+'<br/>' +
+    					rVariable + ': '+csvMap[this.point.name][0][rVariable]+'<br/>' +
+    					colorVariable + ': '+csvMap[this.point.name][0][colorVariable]+'<br/>';
+    		}
+			// headerFormat: '<b>{series.name}</b><br>',
+			// pointFormat: '{point.name}<br/>' + 
+			// 			  data.yLabel + ': {point.y}<br/>' +
+			// 			  data.xLabel + ': {point.x}<br/>' +
+			// 			  rVariable + ': '+csvMap[this.point.name][0][rVariable]+'<br/>' +
+			// 			  colorVariable + ': '+csvMap[this.point.name][0][colorVariable]+'<br/>'
+		},
         plotOptions: {
             series: {
+            	states: {
+                    hover: {
+                        halo: {
+                            // size: this.size,
+                            attributes: {
+                                fill: this.color,
+                                'stroke-width': 2,
+                                stroke: '#333'
+                            }
+                        }
+
+                    }
+                },
                 point: {
                     events: {
                         mouseOver: function () {
@@ -823,14 +853,16 @@ function drawScatter(data){
                         		var layer = _.find(counters.getLayers(), function(layer){return layer.feature.properties.ID == previousMouseId;})
 	                        	layer.setStyle({
 	                        		color: getColorScale(csvMap[layer.feature.properties.ID][0]),
-	                        		opacity: 0.5
+	                        		opacity: 0.5,
+	                        		weight: 5
 	                        	});
                         	}
                         	var id = this.name;
                         	var layer = _.find(counters.getLayers(), function(layer){return layer.feature.properties.ID == id;})
                         	layer.setStyle({
                         		color: '#000',
-                        		opacity: 1
+                        		opacity: 1,
+                        		weight: 10
                         	});
                         	previousMouseId = id;
                         }
@@ -843,7 +875,8 @@ function drawScatter(data){
                     	var layer = _.find(counters.getLayers(), function(layer){return layer.feature.properties.ID == previousMouseId;})
                     	layer.setStyle({
                     		color: getColorScale(csvMap[layer.feature.properties.ID][0]),
-                    		opacity: 0.5
+                    		opacity: 0.5,
+                    		weight: 5
                     	});
                     }
                 }
@@ -851,15 +884,9 @@ function drawScatter(data){
         },
 
         series: [{
-        	tooltip: {
-				headerFormat: '<b>{series.name}</b><br>',
-				pointFormat: '{point.name}<br/>' + 
-							  data.yLabel + ': {point.y}<br/>' +
-							  data.xLabel + ': {point.x}<br/>'
-			},
 			name: 'Project',
-            data: data.data
-
+            data: data.data,
+            color: scales[colorVariable].range()
         }]
     });
 }
@@ -899,7 +926,7 @@ function convertHex(hex,opacity){
 }
 function getPointSize(row){
 	var maxSize = _.max(csvRows,rVariable)[rVariable];
-	return +row[rVariable] / maxSize * 10;
+	return +row[rVariable] / maxSize * 20;
 }
 function getScatterData(csvRows){
 	xVariable = $('#xVariable').val();
@@ -908,7 +935,7 @@ function getScatterData(csvRows){
 	colorVariable = $('#colorVariable').val();
 	dataValues = [];
 	var color = 'rgba(223, 83, 83, .5)';
-	var colorDomain = [_.min(csvRows,colorVariable)[colorVariable],_.max(csvRows,colorVariable)[colorVariable]];
+	// var colorDomain = [_.min(csvRows,colorVariable)[colorVariable],_.max(csvRows,colorVariable)[colorVariable]];
 	console.log(csvRows);
 	csvRows.forEach(function(row){
 		var pointSize = getPointSize(row);
@@ -931,13 +958,18 @@ function getScatterData(csvRows){
 	};
 }
 function getColorScale(row){
+	// console.log(row[colorVariable]);
 	if (typeof scales[colorVariable] === 'undefined'){
 		var colorDomain = [_.min(csvRows,colorVariable)[colorVariable],_.max(csvRows,colorVariable)[colorVariable]];
 		scales[colorVariable] = d3.scale.quantize()
 		    .domain(colorDomain)
 		    .range(colorbrewer.RdPu[7]);
+		return scales[colorVariable](+row[colorVariable]);
 	}
-	return scales[colorVariable](+row[colorVariable]);
+	else{
+		return scales[colorVariable](+row[colorVariable]);
+	}
+	
 }
 
 function initialize() {
@@ -945,7 +977,11 @@ function initialize() {
 	$('.scatterVariable').change(function(){
 		var chartData = getScatterData(csvRows);
 		drawScatter(chartData);
-	})
+	});
+	$('#colorVariable').change(function(){
+		colorVariable = this.value;
+		resetMarkers();
+	});
 	var params = jQuery.unparam(window.location.hash);
 	console.log(params);
 	var currentLayer;
@@ -1073,7 +1109,7 @@ function initialize() {
 							},
 							mouseover: function(e){
 								if (previousProps === null){
-									console.log(feature);
+									// console.log(feature);
 									var p =_.find($('#chart').highcharts().series[0].data, function(obj){return obj.name == feature.properties.ID});
 									var color = getColorScale(csvMap[feature.properties.ID][0]);
 									p.update({
@@ -1118,54 +1154,54 @@ function initialize() {
 				if (typeof currentLayer !== 'undefined'){
 					getStationData(currentLayer);
 				}
-				legend.onAdd = function (map) {
+				// legend.onAdd = function (map) {
 
-					var div = L.DomUtil.create('div', 'info legend row');
-					var innerDiv = $('')
-					// div.style.width ='400px';
-					// div.innerHTML += '<div style="width:200px;">';
-					div.innerHTML += '<h4>Counter technology</h4>';
+				// 	var div = L.DomUtil.create('div', 'info legend row');
+				// 	var innerDiv = $('')
+				// 	// div.style.width ='400px';
+				// 	// div.innerHTML += '<div style="width:200px;">';
+				// 	div.innerHTML += '<h4>Counter technology</h4>';
 
-					var tech = Object.keys(technology);
+				// 	var tech = Object.keys(technology);
 
-				    for (var i = 0; i < tech.length; i++) {
-				        div.innerHTML +=
-				            '<i class="circle" style="background:' + technology[tech[i]].color + '"></i> ' +
-				             (tech[i] ? technology[tech[i]].label + '<br>' : '+');
-				    }
-				    // div.innerHTML += 'some other content';
-				    // div.innerHTML += '</div><div class=""pull-right style="width:200px;">'
-				    // div.innerHTML += '<h4>Days of counting</h4>';
+				//     for (var i = 0; i < tech.length; i++) {
+				//         div.innerHTML +=
+				//             '<i class="circle" style="background:' + technology[tech[i]].color + '"></i> ' +
+				//              (tech[i] ? technology[tech[i]].label + '<br>' : '+');
+				//     }
+				//     // div.innerHTML += 'some other content';
+				//     // div.innerHTML += '</div><div class=""pull-right style="width:200px;">'
+				//     // div.innerHTML += '<h4>Days of counting</h4>';
 
-					// var tech = Object.keys(technology);
+				// 	// var tech = Object.keys(technology);
 				    
 
-				 //    for (var i = 0; i < opacities.length; i++) {
-				 //        div.innerHTML +=
-				 //            '<i class="circle" style="background: grey; opacity:'+opacities[i].value+'"></i> < ' +
-				 //             (opacities[i].label ? opacities[i].label + '<br>' : '+');
-				 //    }
-				 //    div.innerHTML += '</div>';
-				    return div;
-				};
-				legend.addTo(map);
-				opacityLegend.onAdd = function (map) {
+				//  //    for (var i = 0; i < opacities.length; i++) {
+				//  //        div.innerHTML +=
+				//  //            '<i class="circle" style="background: grey; opacity:'+opacities[i].value+'"></i> < ' +
+				//  //             (opacities[i].label ? opacities[i].label + '<br>' : '+');
+				//  //    }
+				//  //    div.innerHTML += '</div>';
+				//     return div;
+				// };
+				// legend.addTo(map);
+				// opacityLegend.onAdd = function (map) {
 
-					var div = L.DomUtil.create('div', 'info legend');
-					div.innerHTML += '<h4>Days of counting</h4>';
+				// 	var div = L.DomUtil.create('div', 'info legend');
+				// 	div.innerHTML += '<h4>Days of counting</h4>';
 
-					var tech = Object.keys(technology);
+				// 	var tech = Object.keys(technology);
 				    
 
-				    for (var i = 0; i < opacities.length; i++) {
-				        div.innerHTML +=
-				            '<i class="circle" style="background: grey; opacity:'+opacities[i].value+'"></i> < ' +
-				             (opacities[i].label ? opacities[i].label + '<br>' : '+');
-				    }
+				//     for (var i = 0; i < opacities.length; i++) {
+				//         div.innerHTML +=
+				//             '<i class="circle" style="background: grey; opacity:'+opacities[i].value+'"></i> < ' +
+				//              (opacities[i].label ? opacities[i].label + '<br>' : '+');
+				//     }
 
-				    return div;
-				};
-				opacityLegend.addTo(map);
+				//     return div;
+				// };
+				// opacityLegend.addTo(map);
 			});
 		}
 	);
