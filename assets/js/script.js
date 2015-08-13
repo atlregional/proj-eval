@@ -65,6 +65,7 @@ var prevError = false;
 var counters;
 var strokeBool = true;
 var map;
+var rawRows;
 // Provide your access token
 	L.mapbox.accessToken = 'pk.eyJ1IjoiYXRscmVnaW9uYWwiLCJhIjoiQmZ6d2tyMCJ9.oENm3NSf--qHrimdm9Vvdw';
 	// Create a map in the div #map
@@ -98,6 +99,11 @@ var csvRows;
 var previousProps = null;
 var scales = {};
 var previousMouseId;
+var formats = {};
+formats['Annual Cost'] = d3.format('$,.2f');
+// formats['Current Score'] = d3.format('.2f');
+// formats['Future Score'] = d3.format('.2f');
+formats.other = d3.format('.2f');
 info.onAdd = function (map) {
     this._div = L.DomUtil.create('div', 'info'); // create a div with a class "info"
     this.update();
@@ -110,27 +116,17 @@ info.update = function (props) {
 		return;
 	}
 	console.log(this);
-	var bootstrapEnv = findBootstrapEnvironment();
-	if (bootstrapEnv !== 'xs'){
-		this._div.style.width = '500px';
-		this._div.style.height = '500px';
-	}
-	else{
-		this._div.style.width = '380px';
-		this._div.style.height = '450px';
-	}
 	if (props){
 		previousProps = props;
-		this._div.innerHTML = 
-		'<h4><strong>ARC Project Evaluation</strong><button id="close-chart" style="font-size:xx-large;" aria-label="Close Count Station Chart" class="close pull-right">&times;</button></h4>' +
+		$('#chartPanel').html( 
+		// '<h4><strong>ARC Project Evaluation</strong><button id="close-chart" style="font-size:xx-large;" aria-label="Close Count Station Chart" class="close pull-right">&times;</button></h4>' +
 		'<div id="chart"></div>' +
-		'<div id="data-summary"></div>';
+		'<div id="data-summary"></div>');
 	}
 	else{
-		this._div.innerHTML = 
-		'<h4><strong>ARC Project Evaluation</strong></h4>' +
-		// 'Click a count location<br/><strong>OR</strong><br/>Set filter and click <em><strong>Go!</strong></em>' +
-		'<div id="chart"></div>';
+		$('#chartPanel').html( 
+		// '<h4><strong>ARC Project Evaluation</strong></h4>' +
+		'<div id="chart"></div>');
 		if (typeof csvRows !== 'undefined'){
 			var chartData = getScatterData(csvRows);
 			drawScatter(chartData);
@@ -143,7 +139,15 @@ info.update = function (props) {
 };
 info.addTo(map);
 $(function() {
+	$('#myTabs a').click(function (e) {
+		e.preventDefault();
+		$(this).tab('show');
+	})
+	$("body").on('shown.bs.tab','#mapTab', function() { 
+		map.invalidateSize(false);
+	});
     initialize();
+    
 	$('.modal').on('show.bs.modal', function() {
 		var chart = $('#chart').highcharts();
 	    $('#chart').css('visibility', 'hidden');
@@ -274,16 +278,6 @@ $(function() {
     	// if (typeof filterPrev === 'undefined' || !_.isEqual(filters, filterPrev)){
     		filterPrev = filters;
     		filterData(this, filters, e);
-    		
-    	// }
-    	// else{
-    	// 	console.log('filters have not changed');
-    	// 	filterPrev = filters;
-    	// 	if (prevError){
-    	// 		showFilterError(filters);
-    	// 		// clearFilter();
-    	// 	}
-    	// }
 		
     }); // end .go-button click
     $('#collapse-button').on('click', function(e){
@@ -341,6 +335,7 @@ function closeChart(){
 	if (previousProps !== null){
 		info.update();
 		resetPrevious();
+		$('#chartControls').show();
 	}
 }
 function filterData($this, filters, e){
@@ -626,6 +621,7 @@ function toTitleCase(str) {
 }
 function getStationData(layer){
 	resetPrevious();
+	$('#chartControls').hide();
 	var count = layer.feature;
 	var id = layer.feature.properties.ID;
 	var description = layer.feature.properties.PRJ_DESC !== null ? toTitleCase(layer.feature.properties.PRJ_DESC) : 'No description';
@@ -664,19 +660,17 @@ function getStationData(layer){
 		data: data,
 		county: countyData[county]
 	};
+	var variableList = ['Current Score', 'Future Score', 'Annual Cost', 'BC 2015', 'BC 2040', 'Annual Benefit 2040'];
 	drawChart(chartData, 'totals');
+	var summaryString = getSummaryString(variableList, csvMap[id][0])
 	$('#data-summary').html(
-		'<b>' + description + '</b><br>' +
-		'Current Score: ' + csvMap[id][0]['Current Score'] +  ' Regional: ' + regionalMap['Current Score']/csvRows.length + '<br>' +
-		'Future Score: ' + csvMap[id][0]['Future Score'] +  ' Regional: ' + regionalMap['Future Score']/csvRows.length + '<br>' +
-		'Current Score: ' + csvMap[id][0]['Current Score'] +  ' Regional: ' + regionalMap['Current Score']/csvRows.length + '<br>' +
-		'Current Score: ' + csvMap[id][0]['Current Score'] 
+		// '<b>' + description + '</b><br>' +
+		summaryString
 	);
 	console.log(chartData);
 
 	previousLayer = layer;
 	// currentData = rollup;
-	$('.modal').modal();
 }
 serialize = function(obj) {
   var str = [];
@@ -752,6 +746,26 @@ function checkFilter(count){
 		return true;
 	}
 }
+function getSummaryString(variableList, row){
+	var summaryTable = $('<table class="table table-condensed" style="font-size:small; ">');
+	summaryTable.append('<thead><tr><th>Category</th><th>'+row['ID']+'</th><th>Regional</th></tr></thead>')
+	var tBody = $('<tbody>');
+	for (var i = 0; i < variableList.length; i++) {
+		var projValue = row[variableList[i]];
+		var regionalValue = regionalMap[variableList[i]]/csvRows.length;
+		if (typeof formats[variableList[i]] !== 'undefined'){
+			projValue = formats[variableList[i]](projValue);
+			regionalValue = formats[variableList[i]](regionalValue);
+		}
+		else{
+			projValue = formats.other(projValue);
+			regionalValue = formats.other(regionalValue);
+		}
+		tBody.append('<tr><td>' +variableList[i]+'</td><td>' + projValue +  '</td><td>' + regionalValue + '</td></tr>');
+	};
+	summaryTable.append(tBody);
+	return summaryTable;
+}
 function drawChart(data, type){
 	console.log(data.county);
 	chart = $('#chart').highcharts({
@@ -819,7 +833,7 @@ function drawScatter(data){
         },
 
         xAxis: {
-        	min: 0,
+        	// min: 0,
             title: {
                 enabled: true,
                 text: data.xLabel
@@ -830,7 +844,7 @@ function drawScatter(data){
             // type: 'category'
         },
         yAxis: {
-        	min: 0,
+        	// min: 0,
             title: {
                 text: data.yLabel
             }
@@ -960,8 +974,8 @@ function getScatterData(csvRows){
 		var pointSize = getPointSize(row);
 		color = getColorScale(row);
 		var totalObject = {
-			y: +row[xVariable],
-			x: +row[yVariable],
+			x: +row[xVariable],
+			y: +row[yVariable],
 			name: row['ID'],
 			radius: pointSize,
 			color: convertHex(color, 0.5),
@@ -990,7 +1004,6 @@ function getColorScale(row){
 	}	
 }
 function initialize() {
-	
 	$('.scatterVariable').change(function(){
 		var chartData = getScatterData(csvRows);
 		drawScatter(chartData);
@@ -1005,9 +1018,13 @@ function initialize() {
 	var projUrl = 'proj_eval.geojson';
 	dataValues = [];
 	// var projUrl = 'Bundles_by_ARCID.geojson'
-	d3.csv('Draft_Visualization_08072015.csv' , 
-		function(error, csv){
-			csvRows = csv;
+	d3.text('Draft_Visualization_08072015.csv', function(unparsedData){
+
+		rawRows = d3.csv.parseRows(unparsedData);
+		rawRows.splice(0,1);
+		csv = d3.csv.parse(unparsedData);
+		csvRows = csv;
+			
 			console.log(csv);
 			regionalData = d3.nest()
 				// .key(function(d) { return d.ID; })
@@ -1116,6 +1133,42 @@ function initialize() {
 			csvMap = d3.nest()
 				.key(function(d) { return d.ID; })
 				.map(csv);
+			var table = $('#projectTable');
+			var thead = $('<thead>')
+			var tr = $('<tr>')
+			
+			var categories = d3.keys(csvRows[0]);
+			console.log(categories);
+			for (var i = 0; i < categories.length; i++) {
+				tr.append('<th>'+categories[i] + '</th>');
+			};
+			thead.append(tr);
+			table.append(thead);
+			arrivalsDatatable = table.DataTable( {
+				// "order": [[ 1, "asc" ]],
+				// "columns": [
+				// 	{"title": "ID"},
+				// 	{"title": "County"},
+				// 	{"title": "Direction"},
+				// 	{"title": "diff"}
+				// ],
+				// "columnDefs": [
+				// 	// "targets": [ 2 ],
+				// 	// "visible": false
+				// 	// { "type": "num", "targets": 0 }
+				// 	{ "visible": false, "targets": 3 },
+				// 	// { "orderData": 1,    "targets": 3 },
+				// ],
+				"data": rawRows,
+				"paging": true,
+				"scrollY": 300,
+        		"scrollX": true,
+				// bScrollCollapse
+				// "pageLength": 6,
+				// "ordering": false,
+				"info": true,
+				"bFilter": true
+			});
 			console.log(csvMap);
 			var chartData = getScatterData(csv);
 			csv.forEach(function(row){
@@ -1278,6 +1331,5 @@ function initialize() {
 				// };
 				// opacityLegend.addTo(map);
 			});
-		}
-	);
+	});
 }

@@ -18,6 +18,10 @@
 	<script src="http://code.highcharts.com/modules/exporting.js"></script>
 	<script src="assets/js/export-csv.js"></script>
 
+	<script type="text/javascript" language="javascript" src="//cdn.datatables.net/1.10.7/js/jquery.dataTables.min.js"></script>
+
+	<script type="text/javascript" language="javascript" src="//cdn.datatables.net/plug-ins/1.10.7/integration/bootstrap/3/dataTables.bootstrap.js"></script>
+	<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.8/css/dataTables.bootstrap.min.css">
 	<script src='https://api.tiles.mapbox.com/mapbox.js/v2.1.9/mapbox.js'></script>
 	<script src='assets/js/leaflet.tooltip.js'></script>
 	<script src='assets/js/leaflet.label.js'></script>
@@ -37,15 +41,26 @@
         html, body {
             height: 100%;
             width: 100%;
+            /*overflow: hidden;*/
         }
         #map {
-            height: 100%;
-            /*width: 50%;*/
+            /*width: 100px;*/
+		    height:800px;
+		    min-height: 100%;
+		    /*min-width: 100%;*/
+		    display: block;
+		    /*overflow: hidden;*/
+        }
+        #mapTab {
+        	min-height: 100%;
+		    height: 100%;
+		    width: 100%;
+		    min-width: 100%;
         }
         #container {
         	height: 100%;
         	width: 100%;
-        	overflow: hidden;
+        	/*overflow: hidden;*/
         }
 	    a {border: none;}
 	    #chart {
@@ -183,6 +198,9 @@
 		.verticalLine {
 		    border-left: thick solid #ff0000;
 		}
+		#tableTab {
+			overflow: scroll;
+		}
 	</style>
 </head>
 <body>
@@ -200,194 +218,164 @@
         </div>
 
         <div id="navbar" class="navbar-collapse collapse">
-	          <ul class="nav navbar-nav">
-	            <!-- <li class="dropdown">
-	              <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Dropdown <span class="caret"></span></a>
-	              <ul class="dropdown-menu">
-		                <li><a href="#">Action</a></li>
-		                <li><a href="#">Another action</a></li>
-		                <li><a href="#">Something else here</a></li>
-		                <li role="separator" class="divider"></li>
-		                <li class="dropdown-header">Nav header</li>
-		                <li><a href="#">Separated link</a></li>
-		                <li><a href="#">One more separated link</a></li>
-	              </ul>
-	            </li> -->
+	          <ul id="myTabs" class="nav navbar-nav">
+	          	<li role="presentation" class="active"><a href="#mapTab" role="tab" data-toggle="tab">Map</a></li>
+	          	<li role="presentation"><a href="#tableTab">Table</a></li>
 	          </ul>
-		        <form class="navbar-form" role="search">
-		        <!-- <button type="button" class="pull-right btn btn-default filter" style="" disabled="disabled" id="clear-dates">clear</button> -->
-		            <!-- <p id="filter-statement">
-						Show me  -->
-						<div class="form-group">
-							<label class="control-label" for="xVariable">x</label>
-							<select type="text" id="xVariable" style="width:200px" class="form-control scatterVariable" >
-								<option value="County">County</option>
-								<option value="ID">ID</option>
-								<option value="Future Congestion">Future Congestion</option>
-								<option value="Future Accessibility">Future Accessibility</option>
-								<option value="Future Freight">Future Freight</option>
-								<option value="Future Deliverability">Future Deliverability</option>
-								<option value="Future Air Quality">Future Air Quality</option>
-								<option value="Future Volume">Future Volume</option>
-								<option value="Future Score">Future Score</option>
-								<option value="Current Congestion">Current Congestion</option>
-								<option value="Current Safety">Current Safety</option>
-								<option value="Current Freight">Current Freight</option>
-								<option value="Current Buffer Index">Current Buffer Index</option>
-								<option value="Current Equitable Target Areas">Current Equitable Target Areas</option>
-								<option value="Current Air Quality">Current Air Quality</option>
-								<option value="Current Accessibility">Current Accessibility</option>
-								<option value="Current Score" selected>Current Score</option>
-								<option value="BC 2015">BC 2015</option>
-								<option value="BC 2040">BC 2040</option>
-								<option value="Annual Benefit 2040">Annual Benefit 2040</option>
-								<option value="Annual Cost">Annual Cost</option>
-							</select> 
-						</div>
-						<!-- vs. -->
-						<div class="form-group">
-							<label class="control-label" for="yVariable">y</label>
-							<select type="text" id="yVariable" style="width:200px" class="form-control scatterVariable" >
-								<option value="County">County</option>
-								<option value="ID">ID</option>
-								<option value="Future Congestion">Future Congestion</option>
-								<option value="Future Accessibility">Future Accessibility</option>
-								<option value="Future Freight">Future Freight</option>
-								<option value="Future Deliverability">Future Deliverability</option>
-								<option value="Future Air Quality">Future Air Quality</option>
-								<option value="Future Volume">Future Volume</option>
-								<option value="Future Score" selected>Future Score</option>
-								<option value="Current Congestion">Current Congestion</option>
-								<option value="Current Safety">Current Safety</option>
-								<option value="Current Freight">Current Freight</option>
-								<option value="Current Buffer Index">Current Buffer Index</option>
-								<option value="Current Equitable Target Areas">Current Equitable Target Areas</option>
-								<option value="Current Air Quality">Current Air Quality</option>
-								<option value="Current Accessibility">Current Accessibility</option>
-								<option value="Current Score">Current Score</option>
-								<option value="BC 2015">BC 2015</option>
-								<option value="BC 2040">BC 2040</option>
-								<option value="Annual Benefit 2040">Annual Benefit 2040</option>
-								<option value="Annual Cost">Annual Cost</option>
-							</select>
-						</div>
-						<!-- vs. -->
-						<div class="form-group">
-							<label class="control-label" for="rVariable">radius</label>
-						<select type="text" id="rVariable" style="width:200px" class="form-control scatterVariable" >
-							<option value="County">County</option>
-							<option value="ID">ID</option>
-							<option value="Future Congestion">Future Congestion</option>
-							<option value="Future Accessibility">Future Accessibility</option>
-							<option value="Future Freight">Future Freight</option>
-							<option value="Future Deliverability">Future Deliverability</option>
-							<option value="Future Air Quality">Future Air Quality</option>
-							<option value="Future Volume">Future Volume</option>
-							<option value="Future Score" selected>Future Score</option>
-							<option value="Current Congestion">Current Congestion</option>
-							<option value="Current Safety">Current Safety</option>
-							<option value="Current Freight">Current Freight</option>
-							<option value="Current Buffer Index">Current Buffer Index</option>
-							<option value="Current Equitable Target Areas">Current Equitable Target Areas</option>
-							<option value="Current Air Quality" selected>Current Air Quality</option>
-							<option value="Current Accessibility">Current Accessibility</option>
-							<option value="Current Score">Current Score</option>
-							<option value="BC 2015">BC 2015</option>
-							<option value="BC 2040">BC 2040</option>
-							<option value="Annual Benefit 2040">Annual Benefit 2040</option>
-							<option value="Annual Cost">Annual Cost</option>
-						</select> 
-						</div>
-						<!-- vs. -->
-						<div class="form-group">
-							<label class="control-label" for="colorVariable">color</label>
-						<select type="text" id="colorVariable" style="width:200px" class="form-control scatterVariable" >
-							<option value="County">County</option>
-							<option value="ID">ID</option>
-							<option value="Future Congestion">Future Congestion</option>
-							<option value="Future Accessibility">Future Accessibility</option>
-							<option value="Future Freight">Future Freight</option>
-							<option value="Future Deliverability">Future Deliverability</option>
-							<option value="Future Air Quality">Future Air Quality</option>
-							<option value="Future Volume">Future Volume</option>
-							<option value="Future Score">Future Score</option>
-							<option value="Current Congestion" selected>Current Congestion</option>
-							<option value="Current Safety">Current Safety</option>
-							<option value="Current Freight">Current Freight</option>
-							<option value="Current Buffer Index">Current Buffer Index</option>
-							<option value="Current Equitable Target Areas">Current Equitable Target Areas</option>
-							<option value="Current Air Quality">Current Air Quality</option>
-							<option value="Current Accessibility">Current Accessibility</option>
-							<option value="Current Score">Current Score</option>
-							<option value="BC 2015">BC 2015</option>
-							<option value="BC 2040">BC 2040</option>
-							<option value="Annual Benefit 2040">Annual Benefit 2040</option>
-							<option value="Annual Cost">Annual Cost</option>
-						</select> 
-						</div>
-						<!-- <button class="btn btn-default single filter has-spinner" id="go-button" type="button">
-							Go!
-						</button> -->
-						
-						<!-- <button class=" btn btn-default btn-xs" id="collapse-button" style="width:20px; margin-top:10px;" type="button" data-toggle="collapse" data-target="#collapseExample" aria-expanded="false" aria-controls="collapseExample">+</button> -->
-					<!-- </p> -->
-					<div id="collapseExample" class="collapse form-inline" style="">
-						<div class="form-group" style="" >
-							<select multiple class="form-control special filter" id="date"></select>
-							<select multiple class="form-control special filter" id="dow">
-								<option value="0">Sunday</option>
-								<option value="1">Monday</option>
-								<option value="2">Tuesday</option>
-								<option value="3">Wednesday</option>
-								<option value="4">Thursday</option>
-								<option value="5">Friday</option>
-								<option value="6">Saturday</option>
-							</select>
-						</div>
-						<div class="form-group">
-							<select multiple class="form-control special filter" id="season">
-								<option value="0">Winter</option>
-								<option value="1">Spring</option>
-								<option value="2">Summer</option>
-								<option value="3">Fall</option>
-							</select>
-						</div>
-						<div class="form-group">
-							<select multiple class="form-control special filter" id="weather">
-								<option value="rain">Rain</option>
-								<option value="thunder">Thunder</option>
-								<option value="snow">Snow</option>
-								<option value="fog">Fog</option>
-							</select>
-						</div>
-						<input style="width:55px" type="text" class="form-control special filter temp" id="temp" placeholder="90">
-						<div class="radio">
-						  <label>
-						    <input type="radio" name="tempRadios" class="special filter" id="temp-min" value="gte." checked>
-						    min
-						  </label>
-						</div>
-						<div class="radio">
-						  <label>
-						    <input type="radio" name="tempRadios" class="special filter" id="temp-max" value="lte.">
-						    max
-						  </label>
-						</div>
-						<input style="width:40px" id="scale-factor" data-slider-id='scale-factorSlider' type="text" data-slider-min="1" data-slider-max="10" data-slider-step="1"/>
-					</div>
-		        </form>
-	         <!--  <ul class="nav navbar-nav navbar-right">
-	            <li><a href="../navbar/">Default</a></li>
-	            <li class="active"><a href="./">Static top <span class="sr-only">(current)</span></a></li>
-	            <li><a href="../navbar-fixed-top/">Fixed top</a></li>
-	          </ul> -->
+	          <ul class="nav navbar-nav pull-right">
+	            <li><a href="#myModal" data-toggle="modal" data-target="#aboutModal">About</a></li>
+	          </ul>
         </div><!--/.nav-collapse -->
       </div>
   </div>
 </nav>
 <div id="container">
-	<div id="map"></div>
+<!-- Tab panes -->
+<div class="tab-content col-sm-6" style="padding:0">
+	<div role="tabpanel" class="tab-pane active" id="mapTab">
+		<div id="map" class=""></div>
+	</div>
+	<div role="tabpanel" class="tab-pane" id="tableTab">
+		<div class="table-responsive">
+			<table class="table table-hover arrivals-table" id="projectTable">
+			</table>
+		</div>
+	</div>
 </div>
+<div id="chartSide" class="col-sm-6">
+	<div id="chartPanel"></div>
+	<div id="chartControls">
+		<form class="navbar-form" role="search">
+			<div class="form-group">
+				<label class="control-label" for="xVariable">x</label>
+				<select type="text" id="xVariable" style="width:200px" class="form-control scatterVariable" >
+					<!-- <option value="County">County</option> -->
+					<!-- <option value="ID">ID</option> -->
+					<option value="Future Congestion">Future Congestion</option>
+					<option value="Future Accessibility">Future Accessibility</option>
+					<option value="Future Freight">Future Freight</option>
+					<option value="Future Deliverability">Future Deliverability</option>
+					<option value="Future Air Quality">Future Air Quality</option>
+					<option value="Future Volume">Future Volume</option>
+					<option value="Future Score">Future Score</option>
+					<option value="Current Congestion">Current Congestion</option>
+					<option value="Current Safety">Current Safety</option>
+					<option value="Current Freight">Current Freight</option>
+					<option value="Current Buffer Index">Current Buffer Index</option>
+					<option value="Current Equitable Target Areas">Current Equitable Target Areas</option>
+					<option value="Current Air Quality">Current Air Quality</option>
+					<option value="Current Accessibility">Current Accessibility</option>
+					<option value="Current Score" selected>Current Score</option>
+					<option value="BC 2015">BC 2015</option>
+					<option value="BC 2040">BC 2040</option>
+					<option value="Annual Benefit 2040">Annual Benefit 2040</option>
+					<option value="Annual Cost">Annual Cost</option>
+				</select> 
+			</div>
+			<!-- vs. -->
+			<div class="form-group">
+				<label class="control-label" for="yVariable">y</label>
+				<select type="text" id="yVariable" style="width:200px" class="form-control scatterVariable" >
+					<!-- <option value="County">County</option> -->
+					<!-- <option value="ID">ID</option> -->
+					<option value="Future Congestion">Future Congestion</option>
+					<option value="Future Accessibility">Future Accessibility</option>
+					<option value="Future Freight">Future Freight</option>
+					<option value="Future Deliverability">Future Deliverability</option>
+					<option value="Future Air Quality">Future Air Quality</option>
+					<option value="Future Volume">Future Volume</option>
+					<option value="Future Score" selected>Future Score</option>
+					<option value="Current Congestion">Current Congestion</option>
+					<option value="Current Safety">Current Safety</option>
+					<option value="Current Freight">Current Freight</option>
+					<option value="Current Buffer Index">Current Buffer Index</option>
+					<option value="Current Equitable Target Areas">Current Equitable Target Areas</option>
+					<option value="Current Air Quality">Current Air Quality</option>
+					<option value="Current Accessibility">Current Accessibility</option>
+					<option value="Current Score">Current Score</option>
+					<option value="BC 2015">BC 2015</option>
+					<option value="BC 2040">BC 2040</option>
+					<option value="Annual Benefit 2040">Annual Benefit 2040</option>
+					<option value="Annual Cost">Annual Cost</option>
+				</select>
+			</div>
+			<!-- vs. -->
+			<div class="form-group">
+				<label class="control-label" for="rVariable">radius</label>
+			<select type="text" id="rVariable" style="width:200px" class="form-control scatterVariable" >
+				<!-- <option value="County">County</option> -->
+				<!-- <option value="ID">ID</option> -->
+				<option value="Future Congestion">Future Congestion</option>
+				<option value="Future Accessibility">Future Accessibility</option>
+				<option value="Future Freight">Future Freight</option>
+				<option value="Future Deliverability">Future Deliverability</option>
+				<option value="Future Air Quality">Future Air Quality</option>
+				<option value="Future Volume">Future Volume</option>
+				<option value="Future Score" selected>Future Score</option>
+				<option value="Current Congestion">Current Congestion</option>
+				<option value="Current Safety">Current Safety</option>
+				<option value="Current Freight">Current Freight</option>
+				<option value="Current Buffer Index">Current Buffer Index</option>
+				<option value="Current Equitable Target Areas">Current Equitable Target Areas</option>
+				<option value="Current Air Quality" selected>Current Air Quality</option>
+				<option value="Current Accessibility">Current Accessibility</option>
+				<option value="Current Score">Current Score</option>
+				<option value="BC 2015">BC 2015</option>
+				<option value="BC 2040">BC 2040</option>
+				<option value="Annual Benefit 2040">Annual Benefit 2040</option>
+				<option value="Annual Cost">Annual Cost</option>
+			</select> 
+			</div>
+			<!-- vs. -->
+			<div class="form-group">
+				<label class="control-label" for="colorVariable">color</label>
+			<select type="text" id="colorVariable" style="width:200px" class="form-control scatterVariable" >
+				<!-- <option value="County">County</option> -->
+				<!-- <option value="ID">ID</option> -->
+				<option value="Future Congestion">Future Congestion</option>
+				<option value="Future Accessibility">Future Accessibility</option>
+				<option value="Future Freight">Future Freight</option>
+				<option value="Future Deliverability">Future Deliverability</option>
+				<option value="Future Air Quality">Future Air Quality</option>
+				<option value="Future Volume">Future Volume</option>
+				<option value="Future Score">Future Score</option>
+				<option value="Current Congestion" selected>Current Congestion</option>
+				<option value="Current Safety">Current Safety</option>
+				<option value="Current Freight">Current Freight</option>
+				<option value="Current Buffer Index">Current Buffer Index</option>
+				<option value="Current Equitable Target Areas">Current Equitable Target Areas</option>
+				<option value="Current Air Quality">Current Air Quality</option>
+				<option value="Current Accessibility">Current Accessibility</option>
+				<option value="Current Score">Current Score</option>
+				<option value="BC 2015">BC 2015</option>
+				<option value="BC 2040">BC 2040</option>
+				<option value="Annual Benefit 2040">Annual Benefit 2040</option>
+				<option value="Annual Cost">Annual Cost</option>
+			</select> 
+			</div>
+        </form>
+	</div>
+</div>
+	
+	
+</div>
+<div id="aboutModal" class="modal fade">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title">ARC Project Evaluation Tool</h4>
+      </div>
+      <div class="modal-body">
+        <p>This tool does things.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+        <!-- <button type="button" class="btn btn-primary">Save changes</button> -->
+      </div>
+    </div><!-- /.modal-content -->
+  </div><!-- /.modal-dialog -->
+</div><!-- /.modal -->
 <script type="text/javascript" src="assets/js/script.js"></script>
 </body>
 
