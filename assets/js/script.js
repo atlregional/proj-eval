@@ -85,7 +85,7 @@ var info = L.control();
 
 var projMap;
 var csvData = {};
-var regionalData;
+var regionalData, countyData;
 var colorScale;
 var csvMap;
 var xVariable = $('#xVariable').val();
@@ -122,13 +122,14 @@ info.update = function (props) {
 	if (props){
 		previousProps = props;
 		this._div.innerHTML = 
-		'<h4><strong>ARC Active Counts</strong><button id="close-chart" style="font-size:xx-large;" aria-label="Close Count Station Chart" class="close pull-right">&times;</button></h4>' +
-		'<div id="chart"></div>';
+		'<h4><strong>ARC Project Evaluation</strong><button id="close-chart" style="font-size:xx-large;" aria-label="Close Count Station Chart" class="close pull-right">&times;</button></h4>' +
+		'<div id="chart"></div>' +
+		'<div id="data-summary"></div>';
 	}
 	else{
 		this._div.innerHTML = 
-		'<h4><strong>ARC Active Counts</strong><button id="close-chart" style="font-size:xx-large;" aria-label="Close Count Station Chart" class="close pull-right">&times;</button></h4>' +
-		'Click a count location<br/><strong>OR</strong><br/>Set filter and click <em><strong>Go!</strong></em>' +
+		'<h4><strong>ARC Project Evaluation</strong></h4>' +
+		// 'Click a count location<br/><strong>OR</strong><br/>Set filter and click <em><strong>Go!</strong></em>' +
 		'<div id="chart"></div>';
 		if (typeof csvRows !== 'undefined'){
 			var chartData = getScatterData(csvRows);
@@ -471,7 +472,8 @@ function resetPrevious(){
 		previousLayer.setStyle({
 			fillColor: color,
 			color: color,
-			stroke: strokeBool
+			stroke: true,
+			opacity: 0.5
 		});
 		previousLayer = null;
 	}
@@ -611,12 +613,32 @@ function getRequestParams(filters){
 function drawMarker(feature, value, factor){
 	feature.setRadius(value, factor);
 }
+function toTitleCase(str) {
+    return str.replace(/\w\S*/g, function(txt){
+      if (/LCI|CTP|TDM|CSX|^NW$|^NE$|^SE$|^SW$|MARTA|GWCC|CNN|^FY$|^ARC$|^SR$|^II$|^STP$|^III$|^US$|CMAQ/g.test(txt))
+        return txt
+      else if (/^IN$|^OF$|^AND$|^FOR$/g.test(txt)){
+        return txt.toLowerCase()
+      }
+      else
+        return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
+    });
+}
 function getStationData(layer){
 	resetPrevious();
 	var count = layer.feature;
-	var id = layer.feature.properties.ARCID;
+	var id = layer.feature.properties.ID;
+	var description = layer.feature.properties.PRJ_DESC !== null ? toTitleCase(layer.feature.properties.PRJ_DESC) : 'No description';
+	var county = csvMap[id][0].County;
+	console.log(county);
+	layer.setStyle({
+		fillColor: highlightStroke,
+		color: highlightStroke,
+		stroke: true,
+		opacity: 0.5,
+		weight: 5
+	});
 	info.update(layer.feature.properties);
-	layer.setStyle({color: highlightStroke, stroke: true});
 	var categories = d3.keys(csvMap['AR-959'][0]);
 	var index = categories.indexOf('County');
 	categories.splice(index, 1);
@@ -626,24 +648,30 @@ function getStationData(layer){
 	categories.splice(index, 1);
 	console.log(csvMap[id]);
 	console.log(id);
-	var data = csvData[id].data;
+	var data;
+	if (typeof csvData[id] !== 'undefined') {
+		data = csvData[id].data;
+	}
+	else{
+		$('#chart').html('No data for project ID <b>' + id + '</b>.');
+		return;
+	}
 	console.log(data);
 	
 	var chartData = {
 		description: id,
 		categories: categories,
 		data: data,
-		totals: {
-			totals: [],
-			means: []
-		},
-		weekends: [],
-		weekdays: [],
-		dates: [],
-		rains: [],
-		temps: []
+		county: countyData[county]
 	};
 	drawChart(chartData, 'totals');
+	$('#data-summary').html(
+		'<b>' + description + '</b><br>' +
+		'Current Score: ' + csvMap[id][0]['Current Score'] +  ' Regional: ' + regionalMap['Current Score']/csvRows.length + '<br>' +
+		'Future Score: ' + csvMap[id][0]['Future Score'] +  ' Regional: ' + regionalMap['Future Score']/csvRows.length + '<br>' +
+		'Current Score: ' + csvMap[id][0]['Current Score'] +  ' Regional: ' + regionalMap['Current Score']/csvRows.length + '<br>' +
+		'Current Score: ' + csvMap[id][0]['Current Score'] 
+	);
 	console.log(chartData);
 
 	previousLayer = layer;
@@ -725,7 +753,7 @@ function checkFilter(count){
 	}
 }
 function drawChart(data, type){
-
+	console.log(data.county);
 	chart = $('#chart').highcharts({
 		chart: {
 	            zoomType: 'x',
@@ -758,9 +786,9 @@ function drawChart(data, type){
         // },
 
         plotOptions: {
-            column: {
-                stacking: 'normal'
-            }
+            // column: {
+            //     stacking: 'normal'
+            // }
         },
 
         series: [{
@@ -768,26 +796,18 @@ function drawChart(data, type){
             data: data.data,
             stack: 'male'
         }, {
-        //     name: 'Joe',
-        //     data: [3, 4, 4, 2, 5, 3, 4, 4, 2, 5],
-        //     stack: 'male'
-        // }, {
-        //     name: 'Jane',
-        //     data: [2, 5, 6, 2, 1, 2, 5, 6, 2, 1],
-        //     stack: 'female'
-        // }, {
             name: 'Regional average',
             data: regionalData,
+            stack: 'female'
+        }, {
+            name: 'County average',
+            data: data.county,
             stack: 'female'
         },
         ]
     });
 }
 function drawScatter(data){
-	// console.log(type);
-	// console.log(data.data);
-	// console.log(data.rains);
-	// console.log(data.temps);
 	chart = $('#chart').highcharts({
 		chart: {
 	            zoomType: 'xy',
@@ -818,17 +838,11 @@ function drawScatter(data){
         tooltip: {
     		formatter: function(){
     			return '<b>' +this.point.name+'</b><br>' +
-    					data.yLabel + ': '+this.point.y+'<br/>' +
+    					data.xLabel + ': '+this.point.x+'<br/>' +
     					data.yLabel + ': '+this.point.y+'<br/>' +
     					rVariable + ': '+csvMap[this.point.name][0][rVariable]+'<br/>' +
     					colorVariable + ': '+csvMap[this.point.name][0][colorVariable]+'<br/>';
     		}
-			// headerFormat: '<b>{series.name}</b><br>',
-			// pointFormat: '{point.name}<br/>' + 
-			// 			  data.yLabel + ': {point.y}<br/>' +
-			// 			  data.xLabel + ': {point.x}<br/>' +
-			// 			  rVariable + ': '+csvMap[this.point.name][0][rVariable]+'<br/>' +
-			// 			  colorVariable + ': '+csvMap[this.point.name][0][colorVariable]+'<br/>'
 		},
         plotOptions: {
             series: {
@@ -865,6 +879,11 @@ function drawScatter(data){
                         		weight: 10
                         	});
                         	previousMouseId = id;
+                        },
+                        click: function () {
+                        	var id = this.name;
+                        	var layer = _.find(counters.getLayers(), function(layer){return layer.feature.properties.ID == id;});
+                        	getStationData(layer);
                         }
                     }
                 },
@@ -951,7 +970,7 @@ function getScatterData(csvRows){
 		dataValues.push(totalObject);
 	});
 	return {
-		description: 'Scatter',
+		description: xVariable + ' vs. ' + yVariable,
 		data: dataValues,
 		xLabel: xVariable,
 		yLabel: yVariable
@@ -968,10 +987,8 @@ function getColorScale(row){
 	}
 	else{
 		return scales[colorVariable](+row[colorVariable]);
-	}
-	
+	}	
 }
-
 function initialize() {
 	
 	$('.scatterVariable').change(function(){
@@ -1038,7 +1055,64 @@ function initialize() {
 					];
 				})
 				.map(csv);
-			
+			countyData = d3.nest()
+				.key(function(d) { return d.County; })
+				.rollup(function(d){
+					return [
+						d3.mean(d,function(g) {
+							return g['Current Accessibility'];
+						}),
+						d3.mean(d,function(g) {
+							return g['Current Air Quality'];
+						}),
+						d3.mean(d,function(g) {
+							return g['Current Buffer Index'];
+						}),
+						d3.mean(d,function(g) {
+							return g['Current Congestion'];
+						}),
+						d3.mean(d,function(g) {
+							return g['Current Equitable Target Areas'];
+						}),
+						d3.mean(d,function(g) {
+							return g['Current Freight'];
+						}),
+						d3.mean(d,function(g) {
+							return g['Current Safety'];
+						}),
+						d3.mean(d,function(g) {
+							return g['Future Accessibility'];
+						}),
+						d3.mean(d,function(g) {
+							return g['Future Air Quality'];
+						}),
+						d3.mean(d,function(g) {
+							return g['Future Congestion'];
+						}),
+						d3.mean(d,function(g) {
+							return g['Future Deliverability'];
+						}),
+						d3.mean(d,function(g) {
+							return g['Future Freight'];
+						}),
+						d3.mean(d,function(g) {
+							return g['Future Volume'];
+						}),
+					];
+				})
+				.map(csv);
+			var totals = {};
+			regionalMap = _.reduce(csv, function(memo, num) {
+				_.each(num, function(val, key){
+					if (typeof totals[key] === 'undefined'){
+						totals[key] = +val;
+					}
+					else{
+						totals[key] += +val;
+					}
+				});
+				return totals;
+			});
 			csvMap = d3.nest()
 				.key(function(d) { return d.ID; })
 				.map(csv);
@@ -1114,14 +1188,14 @@ function initialize() {
 									var color = getColorScale(csvMap[feature.properties.ID][0]);
 									p.update({
 										marker: {
-											// symbol: 'square',
 											fillColor: convertHex(color, 1.0),
-											// opacity: 1,
 											lineColor: "#333",
+											lineWidth: 2,
 											radius: getPointSize(csvMap[feature.properties.ID][0]) + 1
 										}
 									});
 								}
+								// layer.setStyle({color: '#333'});
 								// getStationData(layer);
 								// map.panTo(layer.getLatLng());
 							},
@@ -1139,6 +1213,7 @@ function initialize() {
 										}
 									});
 								}
+								// layer.setStyle({color: color});
 								// getStationData(layer);
 								// map.panTo(layer.getLatLng());
 							}
