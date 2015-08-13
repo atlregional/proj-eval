@@ -410,7 +410,7 @@ function filterData($this, filters, e){
 							});
 				for (var j = layers.length - 1; j >= 0; j--) {
         			var tooltip = layers[j]._tooltip;
-        			var id = layers[j].feature.properties.id;
+        			var id = layers[j].feature.properties.ID;
         			var opacityValue = 0.4; 
 
         			// If station does not have data for filter query, do not show it.
@@ -466,7 +466,7 @@ function getOpacity(numCount){
 }
 function resetPrevious(){
 	if(typeof previousLayer !== 'undefined' && previousLayer !== null){
-		var color = typeof colorScale(previousLayer.feature.properties.PRJ_TYPE) !== 'undefined' ? colorScale(previousLayer.feature.properties.PRJ_TYPE) : 'blue';
+		var color = typeof scales[colorVariable](csvMap[previousLayer.feature.properties.ID][0][colorVariable]) !== 'undefined' ? scales[colorVariable](csvMap[previousLayer.feature.properties.ID][0][colorVariable]) : 'blue';
 		previousLayer.setStyle({
 			fillColor: color,
 			color: color,
@@ -865,6 +865,10 @@ function convertHex(hex,opacity){
     result = 'rgba('+r+','+g+','+b+','+opacity+')';
     return result;
 }
+function getPointSize(row){
+	var maxSize = _.max(csvRows,rVariable)[rVariable];
+	return +row[rVariable] / maxSize * 10;
+}
 function getScatterData(csvRows){
 	xVariable = $('#xVariable').val();
 	yVariable = $('#yVariable').val();
@@ -873,21 +877,19 @@ function getScatterData(csvRows){
 	dataValues = [];
 	var color = 'rgba(223, 83, 83, .5)';
 	var colorDomain = [_.min(csvRows,colorVariable)[colorVariable],_.max(csvRows,colorVariable)[colorVariable]];
-	var maxSize = _.max(csvRows,rVariable)[rVariable];
-
 	console.log(csvRows);
 	// domain.push([]);
 	// var colorScale = d3.scale.linear()
  //          .domain(domain)
  //          .range(colorbrewer.RdPu[7]);
-	scales.quantize = d3.scale.quantize()
+	scales[colorVariable] = d3.scale.quantize()
 	    .domain(colorDomain)
 	    .range(colorbrewer.RdPu[7]);
 	csvRows.forEach(function(row){
-		var pointSize = +row[rVariable] / maxSize * 10;
-		if (typeof scales.quantize !== 'undefined'){
-			color = scales.quantize(+row[colorVariable]);
-			console.log(color);
+		var pointSize = getPointSize(row);
+		if (typeof scales[colorVariable] !== 'undefined'){
+			color = scales[colorVariable](+row[colorVariable]);
+			// console.log(color);
 		}
 		var totalObject = {
 			y: +row[xVariable],
@@ -1013,15 +1015,16 @@ function initialize() {
 				console.log(geomMap);
 				var domain = Object.keys(projMap);
 				domain.push(undefined);
-				colorScale = d3.scale.threshold()
-		              .domain(domain)
-		              .range(colorbrewer.Accent[7]);
+				var colorDomain = [_.min(csvRows,colorVariable)[colorVariable],_.max(csvRows,colorVariable)[colorVariable]];
+				scales[colorVariable] = d3.scale.quantize()
+				    .domain(colorDomain)
+				    .range(colorbrewer.RdPu[7]);
 				console.log(projMap)
 				var stations = [];
 				counters = L.geoJson(geoJSON, {
 					style: function(feature){
-						var color = colorScale(feature.properties.PRJ_TYPE);
-						// console.log(color);
+						var color = scales[colorVariable](csvMap[feature.properties.ID][0][colorVariable]);
+						// console.log(csvMap[feature.properties.ID][0][colorVariable]);
 						if (typeof color === 'undefined'){
 							color = 'blue'
 						}
@@ -1033,10 +1036,42 @@ function initialize() {
 						};
 					},
 					onEachFeature: function(feature, layer){
+						layer.bindLabel(feature.properties.ID, { direction: 'auto' });
 						layer.on({
 							click: function(e){
 								console.log(feature);
 								getStationData(layer);
+								// map.panTo(layer.getLatLng());
+							},
+							mouseover: function(e){
+								if (previousProps === null){
+									console.log(feature);
+									var p =_.find($('#chart').highcharts().series[0].data, function(obj){return obj.name == feature.properties.ID});
+									p.update({
+										marker: {
+											// symbol: 'square',
+											fillColor: "#333",
+											// lineColor: "A0F0",
+											// radius: 5
+										}
+									});
+								}
+								// getStationData(layer);
+								// map.panTo(layer.getLatLng());
+							},
+							mouseout: function(e){
+								if (previousProps === null){
+									var p =_.find($('#chart').highcharts().series[0].data, function(obj){return obj.name == feature.properties.ID});
+									p.update({
+										marker: {
+											// symbol: 'square',
+											fillColor: scales[colorVariable](csvMap[feature.properties.ID][0][colorVariable]),
+											// lineColor: "A0F0",
+											radius: getPointSize(csvMap[feature.properties.ID][0])
+										}
+									});
+								}
+								// getStationData(layer);
 								// map.panTo(layer.getLatLng());
 							}
 						});
