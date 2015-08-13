@@ -97,6 +97,7 @@ var newCsv, csv;
 var csvRows;
 var previousProps = null;
 var scales = {};
+var previousMouseId;
 info.onAdd = function (map) {
     this._div = L.DomUtil.create('div', 'info'); // create a div with a class "info"
     this.update();
@@ -813,8 +814,39 @@ function drawScatter(data){
         },
 
         plotOptions: {
-            column: {
-                stacking: 'normal'
+            series: {
+                point: {
+                    events: {
+                        mouseOver: function () {
+                        	// console.log(this.name);
+                        	if (typeof previousMouseId !== 'undefined'){
+                        		var layer = _.find(counters.getLayers(), function(layer){return layer.feature.properties.ID == previousMouseId;})
+	                        	layer.setStyle({
+	                        		color: getColorScale(csvMap[layer.feature.properties.ID][0]),
+	                        		opacity: 0.5
+	                        	});
+                        	}
+                        	var id = this.name;
+                        	var layer = _.find(counters.getLayers(), function(layer){return layer.feature.properties.ID == id;})
+                        	layer.setStyle({
+                        		color: '#000',
+                        		opacity: 1
+                        	});
+                        	previousMouseId = id;
+                        }
+                    }
+                },
+                events: {
+                	mouseOut: function () {
+                     //    console.log(this.name);
+                    	// var id = this.name;
+                    	var layer = _.find(counters.getLayers(), function(layer){return layer.feature.properties.ID == previousMouseId;})
+                    	layer.setStyle({
+                    		color: getColorScale(csvMap[layer.feature.properties.ID][0]),
+                    		opacity: 0.5
+                    	});
+                    }
+                }
             }
         },
 
@@ -878,19 +910,9 @@ function getScatterData(csvRows){
 	var color = 'rgba(223, 83, 83, .5)';
 	var colorDomain = [_.min(csvRows,colorVariable)[colorVariable],_.max(csvRows,colorVariable)[colorVariable]];
 	console.log(csvRows);
-	// domain.push([]);
-	// var colorScale = d3.scale.linear()
- //          .domain(domain)
- //          .range(colorbrewer.RdPu[7]);
-	scales[colorVariable] = d3.scale.quantize()
-	    .domain(colorDomain)
-	    .range(colorbrewer.RdPu[7]);
 	csvRows.forEach(function(row){
 		var pointSize = getPointSize(row);
-		if (typeof scales[colorVariable] !== 'undefined'){
-			color = scales[colorVariable](+row[colorVariable]);
-			// console.log(color);
-		}
+		color = getColorScale(row);
 		var totalObject = {
 			y: +row[xVariable],
 			x: +row[yVariable],
@@ -908,6 +930,16 @@ function getScatterData(csvRows){
 		yLabel: yVariable
 	};
 }
+function getColorScale(row){
+	if (typeof scales[colorVariable] === 'undefined'){
+		var colorDomain = [_.min(csvRows,colorVariable)[colorVariable],_.max(csvRows,colorVariable)[colorVariable]];
+		scales[colorVariable] = d3.scale.quantize()
+		    .domain(colorDomain)
+		    .range(colorbrewer.RdPu[7]);
+	}
+	return scales[colorVariable](+row[colorVariable]);
+}
+
 function initialize() {
 	
 	$('.scatterVariable').change(function(){
@@ -1015,15 +1047,11 @@ function initialize() {
 				console.log(geomMap);
 				var domain = Object.keys(projMap);
 				domain.push(undefined);
-				var colorDomain = [_.min(csvRows,colorVariable)[colorVariable],_.max(csvRows,colorVariable)[colorVariable]];
-				scales[colorVariable] = d3.scale.quantize()
-				    .domain(colorDomain)
-				    .range(colorbrewer.RdPu[7]);
 				console.log(projMap)
 				var stations = [];
 				counters = L.geoJson(geoJSON, {
 					style: function(feature){
-						var color = scales[colorVariable](csvMap[feature.properties.ID][0][colorVariable]);
+						var color = getColorScale(csvMap[feature.properties.ID][0]);
 						// console.log(csvMap[feature.properties.ID][0][colorVariable]);
 						if (typeof color === 'undefined'){
 							color = 'blue'
@@ -1047,12 +1075,14 @@ function initialize() {
 								if (previousProps === null){
 									console.log(feature);
 									var p =_.find($('#chart').highcharts().series[0].data, function(obj){return obj.name == feature.properties.ID});
+									var color = getColorScale(csvMap[feature.properties.ID][0]);
 									p.update({
 										marker: {
 											// symbol: 'square',
-											fillColor: "#333",
-											// lineColor: "A0F0",
-											// radius: 5
+											fillColor: convertHex(color, 1.0),
+											// opacity: 1,
+											lineColor: "#333",
+											radius: getPointSize(csvMap[feature.properties.ID][0]) + 1
 										}
 									});
 								}
@@ -1062,11 +1092,13 @@ function initialize() {
 							mouseout: function(e){
 								if (previousProps === null){
 									var p =_.find($('#chart').highcharts().series[0].data, function(obj){return obj.name == feature.properties.ID});
+									var color = getColorScale(csvMap[feature.properties.ID][0]);
 									p.update({
 										marker: {
 											// symbol: 'square',
-											fillColor: scales[colorVariable](csvMap[feature.properties.ID][0][colorVariable]),
-											// lineColor: "A0F0",
+											fillColor: convertHex(color, 0.5),
+											// opacity: 0.5,
+											// lineColor: rgba(0,0,0,0),
 											radius: getPointSize(csvMap[feature.properties.ID][0])
 										}
 									});
