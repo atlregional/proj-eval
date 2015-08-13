@@ -137,7 +137,8 @@ info.update = function (props) {
 			closeChart();
 	});
 };
-info.addTo(map);
+info.update();
+// info.addTo(map);
 $(function() {
 	$('#myTabs a').click(function (e) {
 		e.preventDefault();
