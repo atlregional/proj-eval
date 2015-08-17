@@ -118,15 +118,16 @@ info.update = function (props) {
 	console.log(this);
 	if (props){
 		previousProps = props;
-		$('#chartPanel').html( 
-		// '<h4><strong>ARC Project Evaluation</strong><button id="close-chart" style="font-size:xx-large;" aria-label="Close Count Station Chart" class="close pull-right">&times;</button></h4>' +
-		'<div id="chart"></div>' +
-		'<div id="data-summary"></div>');
+		$('#close-chart').show().removeClass('hidden');
+		$('#chartPanel').append('<div id="data-summary"></div>');
 	}
 	else{
-		$('#chartPanel').html( 
-		// '<h4><strong>ARC Project Evaluation</strong></h4>' +
-		'<div id="chart"></div>');
+		// $('#chartPanel').html( 
+		// // '<h4><strong>ARC Project Evaluation</strong></h4>' +
+		// '');
+		
+		$('#close-chart').hide();
+		$('#data-summary').remove();
 		if (typeof csvRows !== 'undefined'){
 			var chartData = getScatterData(csvRows);
 			drawScatter(chartData);
@@ -134,19 +135,23 @@ info.update = function (props) {
 		}
 	}
 	$('#close-chart').on('click', function(){
-			closeChart();
+		closeChart();
 	});
 };
 info.update();
 // info.addTo(map);
 $(function() {
+	$(window).hashchange(function(){
+		getHash();
+	});
 	$('#myTabs a').click(function (e) {
 		e.preventDefault();
 		$(this).tab('show');
 	})
-	$("body").on('shown.bs.tab','#mapTab', function() { 
-		map.invalidateSize(false);
-	});
+	// $("#mapTabLink").on('show.bs.tab', function() { 
+	// 	map.invalidateSize(false);
+	// 	console.log('map tab');
+	// });
     initialize();
     
 	$('.modal').on('show.bs.modal', function() {
@@ -205,24 +210,6 @@ $(function() {
 	if (bootstrapEnv === 'xs' || bootstrapEnv === 'sm'){
 		initialScaleFactor = 10;
 	}
-	$('#scale-factor').slider({
-      	formatter: function(value) {
-        	return 'Marker radius size: ' + value;
-      	},
-      	value: initialScaleFactor
-    })
-	.on('change', function(e){ 
-		console.log(e.value.newValue);
-		var layers = counters.getLayers();
-		var oldValue = e.value.oldValue;
-		var newValue = e.value.newValue;
-		for (var i = layers.length - 1; i >= 0; i--) {
-			var oldRadius = layers[i].getRadius();
-			layers[i].setRadius(oldRadius / oldValue * newValue);
-		};
-			
-			
-		});
     $('.filter').on('keyup change', function(e){
     	$('#main-alert').css('visibility','hidden');
     	if (this.id === 'dow' || this.id === 'season'){
@@ -338,6 +325,14 @@ function closeChart(){
 		resetPrevious();
 		$('#chartControls').show();
 	}
+}
+function getHash(){
+	var id = location.hash.slice(1);
+	// console.log();
+	var source = 'table';
+	if ($("ul#myTabs li.active").attr('id') === 'mapTabLink')
+		source = 'map';
+	getStationData(getLayerById(id), source);
 }
 function filterData($this, filters, e){
 	strokeBool = false;
@@ -464,6 +459,10 @@ function getOpacity(numCount){
 }
 function resetPrevious(){
 	if(typeof previousLayer !== 'undefined' && previousLayer !== null){
+		if ( $.fn.dataTable.isDataTable('#projectTable') ) {
+			$('#projectTable').DataTable().search( '' ).draw();
+		}
+		$('#'+previousLayer.feature.properties.ID.replace(/ /gi, "-")+'-row').closest('tr').removeClass('warning');
 		var color = typeof scales[colorVariable](csvMap[previousLayer.feature.properties.ID][0][colorVariable]) !== 'undefined' ? scales[colorVariable](csvMap[previousLayer.feature.properties.ID][0][colorVariable]) : 'blue';
 		previousLayer.setStyle({
 			fillColor: color,
@@ -515,6 +514,14 @@ function createNestingFunction(propertyName, propertyValues, propertyMap){
 			return d[propertyMap[propertyName]];
 		// }
 	};
+}
+function getLayerById(id){
+	var layers = counters.getLayers();
+	for (var j = layers.length - 1; j >= 0; j--) {
+		if (layers[j].feature.properties.ID === id ){
+			return layers[j];
+		}
+	}
 }
 function resetMarkers(){
 	strokeBool = true;
@@ -620,12 +627,17 @@ function toTitleCase(str) {
         return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
     });
 }
-function getStationData(layer){
+function getStationData(layer, source){
 	resetPrevious();
 	$('#chartControls').hide();
 	var count = layer.feature;
 	var id = layer.feature.properties.ID;
+	if ( source !== 'table' && $.fn.dataTable.isDataTable('#projectTable') ) {
+		$('#projectTable').DataTable().search( id ).draw();
+	}
+	$('#'+id.replace(/ /gi, "-")+'-row').closest('tr').addClass('warning');
 	var description = layer.feature.properties.PRJ_DESC !== null ? toTitleCase(layer.feature.properties.PRJ_DESC) : 'No description';
+	description += ' <button onclick="closeChart()" class="btn btn-xs btn-default">Close &times;</button>'
 	var county = csvMap[id][0].County;
 	console.log(county);
 	layer.setStyle({
@@ -663,11 +675,11 @@ function getStationData(layer){
 	};
 	var variableList = ['Current Score', 'Future Score', 'Annual Cost', 'BC 2015', 'BC 2040', 'Annual Benefit 2040'];
 	drawChart(chartData, 'totals');
-	var summaryString = getSummaryString(variableList, csvMap[id][0])
-	$('#data-summary').html(
-		// '<b>' + description + '</b><br>' +
-		summaryString
-	);
+	var summaryString = getSummaryString(variableList, csvMap[id][0]);
+	$('#data-summary')
+		.html('')
+		.append(description)
+		.append(summaryString);
 	console.log(chartData);
 
 	previousLayer = layer;
@@ -748,7 +760,7 @@ function checkFilter(count){
 	}
 }
 function getSummaryString(variableList, row){
-	var summaryTable = $('<table class="table table-condensed" style="font-size:small; ">');
+	var summaryTable = $('<table id="summary-table" class="table table-condensed" style="font-size:small; ">');
 	summaryTable.append('<thead><tr><th>Category</th><th>'+row['ID']+'</th><th>Regional</th></tr></thead>')
 	var tBody = $('<tbody>');
 	for (var i = 0; i < variableList.length; i++) {
@@ -792,13 +804,12 @@ function drawChart(data, type){
             }
         },
 
-        // tooltip: {
-        //     formatter: function () {
-        //         return '<b>' + this.x + '</b><br/>' +
-        //             this.series.name + ': ' + this.y + '<br/>' +
-        //             'Total: ' + this.point.stackTotal;
-        //     }
-        // },
+        tooltip: {
+            formatter: function () {
+                return '<b>' + this.x + '</b><br/>' +
+                    this.series.name + ': ' + formats.other(this.y);
+            }
+        },
 
         plotOptions: {
             // column: {
@@ -853,10 +864,10 @@ function drawScatter(data){
         tooltip: {
     		formatter: function(){
     			return '<b>' +this.point.name+'</b><br>' +
-    					data.xLabel + ': '+this.point.x+'<br/>' +
-    					data.yLabel + ': '+this.point.y+'<br/>' +
-    					rVariable + ': '+csvMap[this.point.name][0][rVariable]+'<br/>' +
-    					colorVariable + ': '+csvMap[this.point.name][0][colorVariable]+'<br/>';
+    					data.xLabel + ': '+formats.other(this.point.x)+'<br/>' +
+    					data.yLabel + ': '+formats.other(this.point.y)+'<br/>' +
+    					rVariable + ': '+formats.other(csvMap[this.point.name][0][rVariable])+'<br/>' +
+    					colorVariable + ': '+formats.other(csvMap[this.point.name][0][colorVariable])+'<br/>';
     		}
 		},
         plotOptions: {
@@ -898,7 +909,7 @@ function drawScatter(data){
                         click: function () {
                         	var id = this.name;
                         	var layer = _.find(counters.getLayers(), function(layer){return layer.feature.properties.ID == id;});
-                        	getStationData(layer);
+                        	getStationData(layer, 'chart');
                         }
                     }
                 },
@@ -1013,12 +1024,8 @@ function initialize() {
 		colorVariable = this.value;
 		resetMarkers();
 	});
-	var params = jQuery.unparam(window.location.hash);
-	console.log(params);
 	var currentLayer;
 	var projUrl = 'proj_eval.geojson';
-	dataValues = [];
-	// var projUrl = 'Bundles_by_ARCID.geojson'
 	d3.text('Draft_Visualization_08072015.csv', function(unparsedData){
 
 		rawRows = d3.csv.parseRows(unparsedData);
@@ -1134,42 +1141,6 @@ function initialize() {
 			csvMap = d3.nest()
 				.key(function(d) { return d.ID; })
 				.map(csv);
-			var table = $('#projectTable');
-			var thead = $('<thead>')
-			var tr = $('<tr>')
-			
-			var categories = d3.keys(csvRows[0]);
-			console.log(categories);
-			for (var i = 0; i < categories.length; i++) {
-				tr.append('<th>'+categories[i] + '</th>');
-			};
-			thead.append(tr);
-			table.append(thead);
-			arrivalsDatatable = table.DataTable( {
-				// "order": [[ 1, "asc" ]],
-				// "columns": [
-				// 	{"title": "ID"},
-				// 	{"title": "County"},
-				// 	{"title": "Direction"},
-				// 	{"title": "diff"}
-				// ],
-				// "columnDefs": [
-				// 	// "targets": [ 2 ],
-				// 	// "visible": false
-				// 	// { "type": "num", "targets": 0 }
-				// 	{ "visible": false, "targets": 3 },
-				// 	// { "orderData": 1,    "targets": 3 },
-				// ],
-				"data": rawRows,
-				"paging": true,
-				"scrollY": 300,
-        		"scrollX": true,
-				// bScrollCollapse
-				// "pageLength": 6,
-				// "ordering": false,
-				"info": true,
-				"bFilter": true
-			});
 			console.log(csvMap);
 			var chartData = getScatterData(csv);
 			csv.forEach(function(row){
@@ -1203,14 +1174,63 @@ function initialize() {
 				console.log(geoJSON);
 				console.log(data);
 				projMap = d3.nest()
-					.key(function(d) { return d.properties.PRJ_TYPE; })
+					.key(function(d) { return d.properties.ID; })
 					.map(json.features);
+
+				// Data table 
+				var table = $('#projectTable');
+				var thead = $('<thead>')
+				var tr = $('<tr>')
+				
+				var categories = d3.keys(csvRows[0]);
+				console.log(categories);
+				categories.splice(2, 0, 'Description');
+				// categories.splice(0, 0, 'Map');
+				for (var i = 0; i < categories.length; i++) {
+					tr.append('<th>'+categories[i] + '</th>');
+				};
+				thead.append(tr);
+				table.append(thead);
+				$.each(rawRows, function(i, row){
+					var description;
+					// console.log(projMap[row[1]][0]);
+					if (typeof projMap[row[1]] !== 'undefined')
+						description = projMap[row[1]][0].properties.PRJ_DESC;
+					else
+						description = '';
+					row.splice(2, 0, description);
+					// row.splice(0, 0, '<a href="#' + row[1] + '">' + row[1] + '</a>')
+					row[1] = '<a id="'+row[1].replace(/ /gi, "-")+'-row" href="#' + row[1] + '">' + row[1] + '</a>';
+				});
+				arrivalsDatatable = table.DataTable( {
+					"order": [[ 1, "asc" ]],
+					// "columns": [
+					// 	{"title": "ID"},
+					// 	{"title": "County"},
+					// 	{"title": "Direction"},
+					// 	{"title": "diff"}
+					// ],
+					// "columnDefs": [
+					// 	// "targets": [ 2 ],
+					// 	// "visible": false
+					// 	// { "type": "num", "targets": 0 }
+					// 	{ "visible": false, "targets": 3 },
+					// 	// { "orderData": 1,    "targets": 3 },
+					// ],
+					"data": rawRows,
+					"paging": true,
+					"scrollY": 400,
+	        		"scrollX": true,
+					// bScrollCollapse
+					"pageLength": 50,
+					// "ordering": false,
+					"info": true,
+					"bFilter": true
+				});
 				geomMap = d3.nest()
 					.key(function(d) { return d.geometry.type; })
 					.map(json.features);
 				console.log(geomMap);
-				var domain = Object.keys(projMap);
-				domain.push(undefined);
 				console.log(projMap)
 				var stations = [];
 				counters = L.geoJson(geoJSON, {
@@ -1232,7 +1252,8 @@ function initialize() {
 						layer.on({
 							click: function(e){
 								console.log(feature);
-								getStationData(layer);
+								window.location.hash = feature.properties.ID;
+								getStationData(layer, 'map');
 								// map.panTo(layer.getLatLng());
 							},
 							mouseover: function(e){
@@ -1249,9 +1270,6 @@ function initialize() {
 										}
 									});
 								}
-								// layer.setStyle({color: '#333'});
-								// getStationData(layer);
-								// map.panTo(layer.getLatLng());
 							},
 							mouseout: function(e){
 								if (previousProps === null){
@@ -1267,70 +1285,20 @@ function initialize() {
 										}
 									});
 								}
-								// layer.setStyle({color: color});
-								// getStationData(layer);
-								// map.panTo(layer.getLatLng());
 							}
 						});
-						stations.push(feature.properties.id);
-						if (typeof params.id !== 'undefined' && params.id === feature.properties.id){
+						if (location.hash.slice(1) === feature.properties.ID){
+							console.log('hash!!')
 							currentLayer = layer;
 						}
 					}
 				}).addTo(map);
+				
 				console.log(counters);
 				map.fitBounds(counters.getBounds());
 				if (typeof currentLayer !== 'undefined'){
-					getStationData(currentLayer);
+					getStationData(currentLayer, 'onload');
 				}
-				// legend.onAdd = function (map) {
-
-				// 	var div = L.DomUtil.create('div', 'info legend row');
-				// 	var innerDiv = $('')
-				// 	// div.style.width ='400px';
-				// 	// div.innerHTML += '<div style="width:200px;">';
-				// 	div.innerHTML += '<h4>Counter technology</h4>';
-
-				// 	var tech = Object.keys(technology);
-
-				//     for (var i = 0; i < tech.length; i++) {
-				//         div.innerHTML +=
-				//             '<i class="circle" style="background:' + technology[tech[i]].color + '"></i> ' +
-				//              (tech[i] ? technology[tech[i]].label + '<br>' : '+');
-				//     }
-				//     // div.innerHTML += 'some other content';
-				//     // div.innerHTML += '</div><div class=""pull-right style="width:200px;">'
-				//     // div.innerHTML += '<h4>Days of counting</h4>';
-
-				// 	// var tech = Object.keys(technology);
-				    
-
-				//  //    for (var i = 0; i < opacities.length; i++) {
-				//  //        div.innerHTML +=
-				//  //            '<i class="circle" style="background: grey; opacity:'+opacities[i].value+'"></i> < ' +
-				//  //             (opacities[i].label ? opacities[i].label + '<br>' : '+');
-				//  //    }
-				//  //    div.innerHTML += '</div>';
-				//     return div;
-				// };
-				// legend.addTo(map);
-				// opacityLegend.onAdd = function (map) {
-
-				// 	var div = L.DomUtil.create('div', 'info legend');
-				// 	div.innerHTML += '<h4>Days of counting</h4>';
-
-				// 	var tech = Object.keys(technology);
-				    
-
-				//     for (var i = 0; i < opacities.length; i++) {
-				//         div.innerHTML +=
-				//             '<i class="circle" style="background: grey; opacity:'+opacities[i].value+'"></i> < ' +
-				//              (opacities[i].label ? opacities[i].label + '<br>' : '+');
-				//     }
-
-				//     return div;
-				// };
-				// opacityLegend.addTo(map);
 			});
 	});
 }
