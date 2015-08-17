@@ -188,11 +188,11 @@ $(function() {
     $('#projectTable').on('mouseover', 'tr', function(){
     	if (tableHighlightId !== null)
 			removeHighlightChartPoint(tableHighlightId);
-		console.log('table');
+		
 		table = $('#projectTable').DataTable();
 		var row = table.row(this);
 		var id = $(row.data()[1]).text();
-		
+		console.log(id);
  		
  		highlightChartPoint(id);
  		tableHighlightId = id;
@@ -343,17 +343,23 @@ function getFilters(){
 function closeChart(){
 	if (previousProps !== null){
 		info.update();
+		location.hash = '';
 		resetPrevious();
 		$('#chartControls').show();
+		if ( $.fn.dataTable.isDataTable('#projectTable') ) {
+			$('#projectTable').DataTable().search( '' ).draw();
+		}
 	}
 }
 function getHash(){
 	var id = location.hash.slice(1);
-	// console.log();
-	var source = 'table';
-	if ($("ul#myTabs li.active").attr('id') === 'mapTabLink')
-		source = 'map';
-	getStationData(getLayerById(id), source);
+	if (d3.keys(csvMap).indexOf(id) > -1 ){
+		// console.log();
+		var source = 'table';
+		if ($("ul#myTabs li.active").attr('id') === 'mapTabLink')
+			source = 'map';
+		getStationData(getLayerById(id), source);
+	}
 }
 function filterData($this, filters, e){
 	strokeBool = false;
@@ -480,9 +486,6 @@ function getOpacity(numCount){
 }
 function resetPrevious(){
 	if(typeof previousLayer !== 'undefined' && previousLayer !== null){
-		if ( $.fn.dataTable.isDataTable('#projectTable') ) {
-			$('#projectTable').DataTable().search( '' ).draw();
-		}
 		$('#'+previousLayer.feature.properties.ID.replace(/ /gi, "-")+'-row').closest('tr').removeClass('warning');
 		var color = typeof scales[colorVariable](csvMap[previousLayer.feature.properties.ID][0][colorVariable]) !== 'undefined' ? scales[colorVariable](csvMap[previousLayer.feature.properties.ID][0][colorVariable]) : 'blue';
 		previousLayer.setStyle({
@@ -652,7 +655,6 @@ function toTitleCase(str) {
 function getStationData(layer, source){
 	resetPrevious();
 	$('#chartControls').hide();
-	var count = layer.feature;
 	var id = layer.feature.properties.ID;
 	if ( source !== 'table' && $.fn.dataTable.isDataTable('#projectTable') ) {
 		$('#projectTable').DataTable().search( id ).draw();
@@ -856,29 +858,33 @@ function drawChart(data, type){
     });
 }
 function highlightChartPoint(id){
-	var p =_.find($('#chart').highcharts().series[0].data, function(obj){return obj.name == id});
-	var color = getColorScale(csvMap[id][0]);
-	p.update({
-		marker: {
-			fillColor: convertHex(color, 1.0),
-			lineColor: "#333",
-			lineWidth: 2,
-			radius: getPointSize(csvMap[id][0]) + 1
-		}
-	});
+	if (previousProps === null){
+		var p =_.find($('#chart').highcharts().series[0].data, function(obj){return obj.name == id});
+		var color = getColorScale(csvMap[id][0]);
+		p.update({
+			marker: {
+				fillColor: convertHex(color, 1.0),
+				lineColor: "#333",
+				lineWidth: 2,
+				radius: getPointSize(csvMap[id][0]) + 1
+			}
+		});
+	}
 }
 function removeHighlightChartPoint(id){
-	var p =_.find($('#chart').highcharts().series[0].data, function(obj){return obj.name == id});
-	var color = getColorScale(csvMap[id][0]);
-	p.update({
-		marker: {
-			// symbol: 'square',
-			fillColor: convertHex(color, 0.5),
-			// opacity: 0.5,
-			// lineColor: rgba(0,0,0,0),
-			radius: getPointSize(csvMap[id][0])
-		}
-	});
+	if (previousProps === null){
+		var p =_.find($('#chart').highcharts().series[0].data, function(obj){return obj.name == id});
+		var color = getColorScale(csvMap[id][0]);
+		p.update({
+			marker: {
+				// symbol: 'square',
+				fillColor: convertHex(color, 0.5),
+				// opacity: 0.5,
+				// lineColor: rgba(0,0,0,0),
+				radius: getPointSize(csvMap[id][0])
+			}
+		});
+	}
 }
 function drawScatter(data){
 	chart = $('#chart').highcharts({
@@ -1304,15 +1310,10 @@ function initialize() {
 								// map.panTo(layer.getLatLng());
 							},
 							mouseover: function(e){
-								if (previousProps === null){
-									// console.log(feature);
 									highlightChartPoint(feature.properties.ID);
-								}
 							},
 							mouseout: function(e){
-								if (previousProps === null){
 									removeHighlightChartPoint(feature.properties.ID);
-								}
 							}
 						});
 						if (location.hash.slice(1) === feature.properties.ID){
