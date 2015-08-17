@@ -72,8 +72,8 @@ var rawRows;
 	map = L.mapbox.map('map', 'atlregional.tm2-basemap');
 
 	map.on('click', function(e) {
-		console.log(e);
-		console.log($(e.originalEvent.target).attr('class'));
+		// console.log(e);
+		// console.log($(e.originalEvent.target).attr('class'));
 		if ($(e.originalEvent.target).attr('class') === 'leaflet-zoom-animated'){
 			closeChart();
 		}
@@ -115,7 +115,7 @@ info.update = function (props) {
 	if (typeof previousProps === 'undefined'){
 		return;
 	}
-	console.log(this);
+	// console.log(this);
 	if (props){
 		previousProps = props;
 		$('#close-chart').show().removeClass('hidden');
@@ -150,7 +150,7 @@ $(function() {
 	})
 	// $("#mapTabLink").on('show.bs.tab', function() { 
 	// 	map.invalidateSize(false);
-	// 	console.log('map tab');
+	// 	// console.log('map tab');
 	// });
     initialize();
     
@@ -164,7 +164,7 @@ $(function() {
 	    chart.reflow();
 	});
 	$('#drawChart').click(function(e){
-		console.log('draw chart');
+		// console.log('draw chart');
 	});
     $("#temp-comparison").on('focus', function () {
         // Store the current value on focus and on change
@@ -192,7 +192,7 @@ $(function() {
 		table = $('#projectTable').DataTable();
 		var row = table.row(this);
 		var id = $(row.data()[1]).text();
-		console.log(id);
+		// console.log(id);
  		
  		highlightChartPoint(id);
  		tableHighlightId = id;
@@ -203,11 +203,11 @@ $(function() {
 			removeHighlightChartPoint(tableHighlightId);
 	});
 	$('.project-row').on('mouseover', function(){
-		console.log('row');
+		// console.log('row');
 	});
     $('input[type=radio][name=tempRadios]').on('click', function() {
 		if (this.id === 'temp-max') {
-			console.log(this.id);
+			// console.log(this.id);
 			// bind radio button value to temp-comparison checkbox
 			$('#temp-comparison option[value="#temp-max"]').prop('selected', true);
 		}
@@ -216,12 +216,12 @@ $(function() {
 		}
 	});
     $('.special').on('change keyup', function(e){
-    	console.log('clearing single');
+    	// console.log('clearing single');
     	$('#temp.single').val('');
     	$(".single option:selected").removeAttr("selected");
     });
     $('.single').on('change keyup', function(e){
-    	console.log('clearing special');
+    	// console.log('clearing special');
     	$('#temp.special').val('');
     	$(".special option:selected").removeAttr("selected");
     });
@@ -242,15 +242,15 @@ $(function() {
     	}
     	var filters = getFilters();
     	var filterVal = $(this).val();
-    	console.log(filters)
-    	console.log(filterPrev)
-    	console.log(_.isEqual(filters, filterPrev));
+    	// console.log(filters)
+    	// console.log(filterPrev)
+    	// console.log(_.isEqual(filters, filterPrev));
     	if (e.type === 'keyup' ){
     		if (this.id !== 'temp'){
-    			console.log('keyup = no change');
+    			// console.log('keyup = no change');
     			return;
     		}
-    		console.log(filterVal);
+    		// console.log(filterVal);
     		if (this.id === 'temp' && filterVal.length < 2){
     			return;
     		}
@@ -261,7 +261,7 @@ $(function() {
     	}
     	else {
     		if (this.id === 'temp'){
-    			console.log('temp not changed');
+    			// console.log('temp not changed');
     			return;
     		}
     	}
@@ -270,7 +270,7 @@ $(function() {
     		filterData(this, filters, e);
     	}
     	else{
-    		console.log('filters have not changed');
+    		// console.log('filters have not changed');
     		filterPrev = filters;
     		if (prevError){
     			showFilterError(filters);
@@ -281,9 +281,9 @@ $(function() {
     }); // end .filter change
     $('#go-button').on('click', function(e){
     	var filters = getFilters();
-    	console.log(filters);
-    	console.log(filterPrev);
-    	console.log(_.isEqual(filters, filterPrev));
+    	// console.log(filters);
+    	// console.log(filterPrev);
+    	// console.log(_.isEqual(filters, filterPrev));
     	// if (typeof filterPrev === 'undefined' || !_.isEqual(filters, filterPrev)){
     		filterPrev = filters;
     		filterData(this, filters, e);
@@ -363,7 +363,7 @@ function getHash(){
 }
 function filterData($this, filters, e){
 	strokeBool = false;
-	console.log(e);
+	// console.log(e);
 	// console.log($this.id)
 	var filterClass;
 	if ( $($this).hasClass('single') === true ){
@@ -372,11 +372,11 @@ function filterData($this, filters, e){
 	else{
 		filterClass = 'special'
 	}
-	console.log(filterClass);
+	// console.log(filterClass);
 	
-	console.log(filters);
+	// console.log(filters);
 	$('#clear-dates').removeAttr('disabled');
-	console.log(e.target.id);
+	// console.log(e.target.id);
 	// var filterType = e.target.id;
 	// var filterValues = $('#'+filterType).val();
 	// console.log(filterValues);
@@ -409,8 +409,8 @@ function filterData($this, filters, e){
 				// $('#go-button').delay(1000).toggleClass('active');
 			},
 			success: function(json) {
-    			console.log(json);
-    			console.log(filters);
+    			// console.log(json);
+    			// console.log(filters);
 				var rollup = d3.nest()
 					.key(function(d) { return d.station_id; })
 					.rollup(function(d){
@@ -424,7 +424,7 @@ function filterData($this, filters, e){
 						};
 					})
 					.map(json);
-				console.log(rollup);
+				// console.log(rollup);
 				var maxNum = _.max(rollup, function(chr) {
 							  return chr.num_count;
 							});
@@ -452,7 +452,7 @@ function filterData($this, filters, e){
         				// If station is currently highlighted, keep it highlighted.
         				if (typeof previousLayer !== 'undefined' && previousLayer !== null && previousLayer.feature.properties.id == id){
         					currentOpacity = 1.0
-        					console.log(id + ' highligh');
+        					// console.log(id + ' highligh');
         				}
         				layers[j].setStyle({
         					fill: true, 
@@ -528,7 +528,7 @@ function adjustFilters(filters){
 	return filters;
 }
 function createNestingFunction(propertyName, propertyValues, propertyMap){
-	console.log(propertyValues);
+	// console.log(propertyValues);
 	// console.log()
 	return function(d){ 
 		
@@ -598,7 +598,7 @@ function showFilterError(filters){
 		else if (filterType === 'temp'){
 			valueText = $("#" + filterType + '.single').val();
 		}
-		console.log(valueText);
+		// console.log(valueText);
 		errorStringArray.push(filterType + ': ' + valueText);
 	});
 	errorString += errorStringArray.join('; ') + '</em></small>';
@@ -663,7 +663,7 @@ function getStationData(layer, source){
 	var description = layer.feature.properties.PRJ_DESC !== null ? toTitleCase(layer.feature.properties.PRJ_DESC) : 'No description';
 	description += ' <button onclick="closeChart()" class="btn btn-xs btn-default">Close &times;</button>'
 	var county = csvMap[id][0].County;
-	console.log(county);
+	// console.log(county);
 	layer.setStyle({
 		fillColor: highlightStroke,
 		color: highlightStroke,
@@ -679,8 +679,8 @@ function getStationData(layer, source){
 	categories.splice(index, 1);
 	index = categories.indexOf('Cost');
 	categories.splice(index, 1);
-	console.log(csvMap[id]);
-	console.log(id);
+	// console.log(csvMap[id]);
+	// console.log(id);
 	var data;
 	if (typeof csvData[id] !== 'undefined') {
 		data = csvData[id].data;
@@ -689,7 +689,7 @@ function getStationData(layer, source){
 		$('#chart').html('No data for project ID <b>' + id + '</b>.');
 		return;
 	}
-	console.log(data);
+	// console.log(data);
 	
 	var chartData = {
 		description: id,
@@ -704,7 +704,7 @@ function getStationData(layer, source){
 		.html('')
 		.append(description)
 		.append(summaryString);
-	console.log(chartData);
+	// console.log(chartData);
 
 	previousLayer = layer;
 	// currentData = rollup;
@@ -804,7 +804,7 @@ function getSummaryString(variableList, row){
 	return summaryTable;
 }
 function drawChart(data, type){
-	console.log(data.county);
+	// console.log(data.county);
 	chart = $('#chart').highcharts({
 		chart: {
 	            zoomType: 'x',
@@ -916,11 +916,17 @@ function drawScatter(data){
         },
         tooltip: {
     		formatter: function(){
+    			var tooltipFormats = {};
+    			tooltipFormats.x = typeof formats[data.xlabel] === 'undefined' ? formats.other : formats['Annual Cost'];
+    			tooltipFormats.y = typeof formats[data.ylabel] === 'undefined' ? formats.other : formats['Annual Cost'];
+    			tooltipFormats.r = typeof formats[rVariable] === 'undefined' ? formats.other : formats['Annual Cost'];
+    			tooltipFormats.color = typeof formats[colorVariable] === 'undefined' ? formats.other : formats['Annual Cost'];
+    			// console.log(tooltipFormats);
     			return '<b>' +this.point.name+'</b><br>' +
-    					data.xLabel + ': '+formats.other(this.point.x)+'<br/>' +
-    					data.yLabel + ': '+formats.other(this.point.y)+'<br/>' +
-    					rVariable + ': '+formats.other(csvMap[this.point.name][0][rVariable])+'<br/>' +
-    					colorVariable + ': '+formats.other(csvMap[this.point.name][0][colorVariable])+'<br/>';
+    					data.xLabel + ': '+tooltipFormats.x(this.point.x)+'<br/>' +
+    					data.yLabel + ': '+tooltipFormats.y(this.point.y)+'<br/>' +
+    					rVariable + ': '+tooltipFormats.r(csvMap[this.point.name][0][rVariable])+'<br/>' +
+    					colorVariable + ': '+tooltipFormats.color(csvMap[this.point.name][0][colorVariable])+'<br/>';
     		}
 		},
         plotOptions: {
@@ -1034,7 +1040,7 @@ function getScatterData(csvRows){
 	dataValues = [];
 	var color = 'rgba(223, 83, 83, .5)';
 	// var colorDomain = [_.min(csvRows,colorVariable)[colorVariable],_.max(csvRows,colorVariable)[colorVariable]];
-	console.log(csvRows);
+	// console.log(csvRows);
 	csvRows.forEach(function(row){
 		var pointSize = getPointSize(row);
 		color = getColorScale(row);
@@ -1086,7 +1092,7 @@ function initialize() {
 		csv = d3.csv.parse(unparsedData);
 		csvRows = csv;
 			
-			console.log(csv);
+			// console.log(csv);
 			regionalData = d3.nest()
 				// .key(function(d) { return d.ID; })
 				.rollup(function(d){
@@ -1194,7 +1200,7 @@ function initialize() {
 			csvMap = d3.nest()
 				.key(function(d) { return d.ID; })
 				.map(csv);
-			console.log(csvMap);
+			// console.log(csvMap);
 			var chartData = getScatterData(csv);
 			csv.forEach(function(row){
 				var newRow  = _.clone(row);
@@ -1217,15 +1223,15 @@ function initialize() {
 			// get line data
 			d3.json(projUrl, function(error, json) {
 				if (error) return console.warn(error);
-				console.log(json);
+				// console.log(json);
 				json.features = _.reject(json.features, function(feature){
 					// console.log(d3.keys(csvMap).indexOf(feature.properties.ID));
 					return d3.keys(csvMap).indexOf(feature.properties.ID) === -1;
 				});
 				var geoJSON = json;
 				data = json;
-				console.log(geoJSON);
-				console.log(data);
+				// console.log(geoJSON);
+				// console.log(data);
 				projMap = d3.nest()
 					.key(function(d) { return d.properties.ID; })
 					.map(json.features);
@@ -1236,7 +1242,7 @@ function initialize() {
 				var tr = $('<tr>')
 				
 				var categories = d3.keys(csvRows[0]);
-				console.log(categories);
+				// console.log(categories);
 				categories.splice(2, 0, 'Description');
 				// categories.splice(0, 0, 'Map');
 				for (var i = 0; i < categories.length; i++) {
@@ -1283,8 +1289,8 @@ function initialize() {
 				geomMap = d3.nest()
 					.key(function(d) { return d.geometry.type; })
 					.map(json.features);
-				console.log(geomMap);
-				console.log(projMap)
+				// console.log(geomMap);
+				// console.log(projMap)
 				var stations = [];
 				counters = L.geoJson(geoJSON, {
 					style: function(feature){
@@ -1304,7 +1310,7 @@ function initialize() {
 						layer.bindLabel(feature.properties.ID, { direction: 'auto' });
 						layer.on({
 							click: function(e){
-								console.log(feature);
+								// console.log(feature);
 								window.location.hash = feature.properties.ID;
 								getStationData(layer, 'map');
 								// map.panTo(layer.getLatLng());
@@ -1317,13 +1323,13 @@ function initialize() {
 							}
 						});
 						if (location.hash.slice(1) === feature.properties.ID){
-							console.log('hash!!')
+							// console.log('hash!!')
 							currentLayer = layer;
 						}
 					}
 				}).addTo(map);
 				
-				console.log(counters);
+				// console.log(counters);
 				map.fitBounds(counters.getBounds());
 				if (typeof currentLayer !== 'undefined'){
 					getStationData(currentLayer, 'onload');
