@@ -184,6 +184,27 @@ $(function() {
         // Make sure the previous value is updated
         // previous = this.value;
     });
+    var tableHighlightId = null;
+    $('#projectTable').on('mouseover', 'tr', function(){
+    	if (tableHighlightId !== null)
+			removeHighlightChartPoint(tableHighlightId);
+		console.log('table');
+		table = $('#projectTable').DataTable();
+		var row = table.row(this);
+		var id = $(row.data()[1]).text();
+		
+ 		
+ 		highlightChartPoint(id);
+ 		tableHighlightId = id;
+
+	})
+	.on( 'mouseleave', function () {
+		if (tableHighlightId !== null)
+			removeHighlightChartPoint(tableHighlightId);
+	});
+	$('.project-row').on('mouseover', function(){
+		console.log('row');
+	});
     $('input[type=radio][name=tempRadios]').on('click', function() {
 		if (this.id === 'temp-max') {
 			console.log(this.id);
@@ -834,6 +855,31 @@ function drawChart(data, type){
         ]
     });
 }
+function highlightChartPoint(id){
+	var p =_.find($('#chart').highcharts().series[0].data, function(obj){return obj.name == id});
+	var color = getColorScale(csvMap[id][0]);
+	p.update({
+		marker: {
+			fillColor: convertHex(color, 1.0),
+			lineColor: "#333",
+			lineWidth: 2,
+			radius: getPointSize(csvMap[id][0]) + 1
+		}
+	});
+}
+function removeHighlightChartPoint(id){
+	var p =_.find($('#chart').highcharts().series[0].data, function(obj){return obj.name == id});
+	var color = getColorScale(csvMap[id][0]);
+	p.update({
+		marker: {
+			// symbol: 'square',
+			fillColor: convertHex(color, 0.5),
+			// opacity: 0.5,
+			// lineColor: rgba(0,0,0,0),
+			radius: getPointSize(csvMap[id][0])
+		}
+	});
+}
 function drawScatter(data){
 	chart = $('#chart').highcharts({
 		chart: {
@@ -1201,7 +1247,7 @@ function initialize() {
 						description = '';
 					row.splice(2, 0, description);
 					// row.splice(0, 0, '<a href="#' + row[1] + '">' + row[1] + '</a>')
-					row[1] = '<a id="'+row[1].replace(/ /gi, "-")+'-row" href="#' + row[1] + '">' + row[1] + '</a>';
+					row[1] = '<a class="project-row" id="'+row[1].replace(/ /gi, "-")+'-row" href="#' + row[1] + '">' + row[1] + '</a>';
 				});
 				arrivalsDatatable = table.DataTable( {
 					"order": [[ 1, "asc" ]],
@@ -1260,31 +1306,12 @@ function initialize() {
 							mouseover: function(e){
 								if (previousProps === null){
 									// console.log(feature);
-									var p =_.find($('#chart').highcharts().series[0].data, function(obj){return obj.name == feature.properties.ID});
-									var color = getColorScale(csvMap[feature.properties.ID][0]);
-									p.update({
-										marker: {
-											fillColor: convertHex(color, 1.0),
-											lineColor: "#333",
-											lineWidth: 2,
-											radius: getPointSize(csvMap[feature.properties.ID][0]) + 1
-										}
-									});
+									highlightChartPoint(feature.properties.ID);
 								}
 							},
 							mouseout: function(e){
 								if (previousProps === null){
-									var p =_.find($('#chart').highcharts().series[0].data, function(obj){return obj.name == feature.properties.ID});
-									var color = getColorScale(csvMap[feature.properties.ID][0]);
-									p.update({
-										marker: {
-											// symbol: 'square',
-											fillColor: convertHex(color, 0.5),
-											// opacity: 0.5,
-											// lineColor: rgba(0,0,0,0),
-											radius: getPointSize(csvMap[feature.properties.ID][0])
-										}
-									});
+									removeHighlightChartPoint(feature.properties.ID);
 								}
 							}
 						});
