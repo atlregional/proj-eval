@@ -468,7 +468,8 @@ function resetPrevious(){
 			fillColor: color,
 			color: color,
 			stroke: true,
-			opacity: 0.5
+			opacity: 0.5,
+			weight: 5
 		});
 		previousLayer = null;
 	}
@@ -645,7 +646,7 @@ function getStationData(layer, source){
 		color: highlightStroke,
 		stroke: true,
 		opacity: 0.5,
-		weight: 5
+		weight: 10
 	});
 	info.update(layer.feature.properties);
 	var categories = d3.keys(csvMap['AR-959'][0]);
