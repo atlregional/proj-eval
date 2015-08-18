@@ -83,7 +83,7 @@ var opacityLegend = L.control({position: 'bottomleft'});
 var info = L.control();
 
 
-
+var filterBool = false;
 var projMap, projTypeMap;
 var csvData = {};
 var regionalData, countyData;
@@ -192,26 +192,27 @@ $(function() {
     var tableHighlightId = null;
     // var table = $('#projectTable').DataTable();
     $('#projectTable').on('mouseover', 'tr', function(){
-    	if (tableHighlightId !== null)
+    	if (tableHighlightId !== null && !filterBool)
 			removeHighlightChartPoint(tableHighlightId);
 		
 		table = $('#projectTable').DataTable();
 		var row = table.row(this);
 		var id = $(row.data()[1]).text();
 		// console.log(id);
- 		
- 		highlightChartPoint(id);
- 		tableHighlightId = id;
-
+ 		if (!filterBool){
+ 			highlightChartPoint(id);
+			tableHighlightId = id;
+		}
 	})
 	.on( 'mouseleave', function () {
-		if (tableHighlightId !== null)
+		if (tableHighlightId !== null && !filterBool)
 			removeHighlightChartPoint(tableHighlightId);
 	});
 	var searchHighlightIds = [];
 	$('#filterChart').click(function(){
 		var searchTerm = $(".dataTables_filter input").val();
 		if (searchTerm.length > 1){
+			filterBool = true;
 			$.each(searchHighlightIds, function(i, id){
 				removeHighlightChartPoint(id);
 			});
@@ -225,12 +226,24 @@ $(function() {
 				// console.log(row);
 				highlightChartPoint(id);
 				searchHighlightIds.push(id);
-				var layer = _.find(counters.getLayers(), function(layer){return layer.feature.properties.ID == id;})
-            	layer.setStyle({
-            		color: '#000',
-            		opacity: 1,
-            		weight: 10
-            	});
+				var layers = counters.getLayers();
+				$.each(layers, function(i, layer){
+					if (searchHighlightIds.indexOf(layer.feature.properties.ID) > -1){
+						layer.setStyle({
+		            		color: getColorScale(csvMap[layer.feature.properties.ID][0]),
+		            		opacity: 0.5,
+		            		weight: 5
+		            	});
+					}
+					else{
+						layer.setStyle({
+		            		// color: getColorScale(csvMap[id][0]),
+		            		opacity: 0.0,
+		            		fillOpacity: 0.0,
+		            		// weight: 5
+		            	});
+					}
+				});
 			});
 		}
 		else{
@@ -246,15 +259,19 @@ $(function() {
 		}
 	})
 	$('#clearFilter').click(function(){
+		filterBool = false;
 		$.each(searchHighlightIds, function(i, id){
 			removeHighlightChartPoint(id);
-			var layer = _.find(counters.getLayers(), function(layer){return layer.feature.properties.ID == id;})
+		});
+		var layers = counters.getLayers();
+		$.each(layers, function(i, layer){
 			layer.setStyle({
-        		color: getColorScale(csvMap[id][0]),
+        		color: getColorScale(csvMap[layer.feature.properties.ID][0]),
         		opacity: 0.5,
+        		fillOpacity: 0.5,
         		weight: 5
         	});
-		});
+        });
 	})
 	$('#projectTable').on('search.dt', function(e){
 		// table = $('#projectTable').DataTable();
@@ -1009,23 +1026,24 @@ function drawScatter(data){
                 point: {
                     events: {
                         mouseOver: function () {
-                        	// console.log(this.name);
-                        	if (typeof previousMouseId !== 'undefined'){
-                        		var layer = _.find(counters.getLayers(), function(layer){return layer.feature.properties.ID == previousMouseId;})
+                        	if (!filterBool){
+	                        	if (typeof previousMouseId !== 'undefined'){
+	                        		var layer = _.find(counters.getLayers(), function(layer){return layer.feature.properties.ID == previousMouseId;})
+		                        	layer.setStyle({
+		                        		color: getColorScale(csvMap[layer.feature.properties.ID][0]),
+		                        		opacity: 0.5,
+		                        		weight: 5
+		                        	});
+	                        	}
+	                        	var id = this.name;
+	                        	var layer = _.find(counters.getLayers(), function(layer){return layer.feature.properties.ID == id;})
 	                        	layer.setStyle({
-	                        		color: getColorScale(csvMap[layer.feature.properties.ID][0]),
-	                        		opacity: 0.5,
-	                        		weight: 5
+	                        		color: '#000',
+	                        		opacity: 1,
+	                        		weight: 10
 	                        	});
-                        	}
-                        	var id = this.name;
-                        	var layer = _.find(counters.getLayers(), function(layer){return layer.feature.properties.ID == id;})
-                        	layer.setStyle({
-                        		color: '#000',
-                        		opacity: 1,
-                        		weight: 10
-                        	});
-                        	previousMouseId = id;
+	                        	previousMouseId = id;
+	                        }
                         },
                         click: function () {
                         	var id = this.name;
@@ -1038,12 +1056,14 @@ function drawScatter(data){
                 	mouseOut: function () {
                      //    console.log(this.name);
                     	// var id = this.name;
-                    	var layer = _.find(counters.getLayers(), function(layer){return layer.feature.properties.ID == previousMouseId;})
-                    	layer.setStyle({
-                    		color: getColorScale(csvMap[layer.feature.properties.ID][0]),
-                    		opacity: 0.5,
-                    		weight: 5
-                    	});
+                    	if (!filterBool){
+	                    	var layer = _.find(counters.getLayers(), function(layer){return layer.feature.properties.ID == previousMouseId;})
+	                    	layer.setStyle({
+	                    		color: getColorScale(csvMap[layer.feature.properties.ID][0]),
+	                    		opacity: 0.5,
+	                    		weight: 5
+	                    	});
+	                    }
                     }
                 }
             }
@@ -1385,10 +1405,14 @@ function initialize() {
 								// map.panTo(layer.getLatLng());
 							},
 							mouseover: function(e){
+								if (!filterBool){
 									highlightChartPoint(feature.properties.ID);
+								}
 							},
 							mouseout: function(e){
+								if (!filterBool){
 									removeHighlightChartPoint(feature.properties.ID);
+								}
 							}
 						});
 						if (location.hash.slice(1) === feature.properties.ID){
