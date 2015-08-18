@@ -84,7 +84,7 @@ var info = L.control();
 
 
 
-var projMap;
+var projMap, projTypeMap;
 var csvData = {};
 var regionalData, countyData;
 var colorScale;
@@ -106,12 +106,14 @@ formats['Annual Cost'] = d3.format('$,.2f');
 formats.other = d3.format('.2f');
 info.onAdd = function (map) {
     this._div = L.DomUtil.create('div', 'info'); // create a div with a class "info"
+    this._div.innerHTML = 'Click a project on the map or chart for more info.'
     this.update();
     return this._div;
 };
 // method that we will use to update the control based on feature properties passed
 info.update = function (props) {
 	// previousLayer = null;
+
 	if (typeof previousProps === 'undefined'){
 		return;
 	}
@@ -139,7 +141,10 @@ info.update = function (props) {
 	});
 };
 info.update();
-// info.addTo(map);
+info.addTo(map);
+
+
+// READY!
 $(function() {
 	$(window).hashchange(function(){
 		getHash();
@@ -185,6 +190,7 @@ $(function() {
         // previous = this.value;
     });
     var tableHighlightId = null;
+    // var table = $('#projectTable').DataTable();
     $('#projectTable').on('mouseover', 'tr', function(){
     	if (tableHighlightId !== null)
 			removeHighlightChartPoint(tableHighlightId);
@@ -201,6 +207,59 @@ $(function() {
 	.on( 'mouseleave', function () {
 		if (tableHighlightId !== null)
 			removeHighlightChartPoint(tableHighlightId);
+	});
+	var searchHighlightIds = [];
+	$('#filterChart').click(function(){
+		var searchTerm = $(".dataTables_filter input").val();
+		if (searchTerm.length > 1){
+			$.each(searchHighlightIds, function(i, id){
+				removeHighlightChartPoint(id);
+			});
+			console.log(searchTerm);
+			table = $('#projectTable').DataTable();
+			var rows = table.$('tr', {"filter":"applied"})
+			console.log(rows)
+			$.each(rows, function(i, row){
+				// id = 'WA-002'
+				id = $($(row).children()[1]).text();
+				// console.log(row);
+				highlightChartPoint(id);
+				searchHighlightIds.push(id);
+				var layer = _.find(counters.getLayers(), function(layer){return layer.feature.properties.ID == id;})
+            	layer.setStyle({
+            		color: '#000',
+            		opacity: 1,
+            		weight: 10
+            	});
+			});
+		}
+		else{
+			$.each(searchHighlightIds, function(i, id){
+				removeHighlightChartPoint(id);
+				var layer = _.find(counters.getLayers(), function(layer){return layer.feature.properties.ID == id;})
+				layer.setStyle({
+            		color: getColorScale(csvMap[id][0]),
+            		opacity: 0.5,
+            		weight: 5
+            	});
+			});
+		}
+	})
+	$('#clearFilter').click(function(){
+		$.each(searchHighlightIds, function(i, id){
+			removeHighlightChartPoint(id);
+			var layer = _.find(counters.getLayers(), function(layer){return layer.feature.properties.ID == id;})
+			layer.setStyle({
+        		color: getColorScale(csvMap[id][0]),
+        		opacity: 0.5,
+        		weight: 5
+        	});
+		});
+	})
+	$('#projectTable').on('search.dt', function(e){
+		// table = $('#projectTable').DataTable();
+		// var api = this.api();
+
 	});
 	$('.project-row').on('mouseover', function(){
 		// console.log('row');
@@ -359,6 +418,9 @@ function getHash(){
 		if ($("ul#myTabs li.active").attr('id') === 'mapTabLink')
 			source = 'map';
 		getStationData(getLayerById(id), source);
+	}
+	else if( id === ''){
+		closeChart();
 	}
 }
 function filterData($this, filters, e){
@@ -1038,12 +1100,13 @@ function getScatterData(csvRows){
 	rVariable = $('#rVariable').val();
 	colorVariable = $('#colorVariable').val();
 	dataValues = [];
-	var color = 'rgba(223, 83, 83, .5)';
+	var color = '#ff0000';
 	// var colorDomain = [_.min(csvRows,colorVariable)[colorVariable],_.max(csvRows,colorVariable)[colorVariable]];
 	// console.log(csvRows);
 	csvRows.forEach(function(row){
 		var pointSize = getPointSize(row);
 		color = getColorScale(row);
+		console.log(row);
 		var totalObject = {
 			x: +row[xVariable],
 			y: +row[yVariable],
@@ -1084,8 +1147,10 @@ function initialize() {
 		resetMarkers();
 	});
 	var currentLayer;
-	var projUrl = 'proj_eval.geojson';
-	d3.text('Draft_Visualization_08072015.csv', function(unparsedData){
+	
+	var csvUrl = 'Draft_Visualization_08072015.csv';
+	// 'BC_Current_Future_0812.csv'
+	d3.text(csvUrl, function(unparsedData){
 
 		rawRows = d3.csv.parseRows(unparsedData);
 		rawRows.splice(0,1);
@@ -1221,6 +1286,8 @@ function initialize() {
 			drawScatter(chartData);
 
 			// get line data
+
+			var projUrl = 'proj_eval.geojson';
 			d3.json(projUrl, function(error, json) {
 				if (error) return console.warn(error);
 				// console.log(json);
@@ -1235,7 +1302,9 @@ function initialize() {
 				projMap = d3.nest()
 					.key(function(d) { return d.properties.ID; })
 					.map(json.features);
-
+				projTypeMap = d3.nest()
+					.key(function(d) { return d.properties['PRJ_TYPE']; })
+					.map(json.features);
 				// Data table 
 				var table = $('#projectTable');
 				var thead = $('<thead>')
