@@ -1087,6 +1087,7 @@ function matchKey(datapoint, key_variable){
 	return(parseFloat(key_variable[0][datapoint]));
 };
 function convertHex(hex,opacity){
+	// console.log(hex);
     hex = hex.replace('#','');
     r = parseInt(hex.substring(0,2), 16);
     g = parseInt(hex.substring(2,4), 16);
@@ -1112,7 +1113,7 @@ function getScatterData(csvRows, countyFilter){
 		// if (countyFilter === '' || typeof countyFilter === 'undefined' || countyFilter === row.County){
 			var pointSize = getPointSize(row);
 			color = getColorScale(row);
-			// console.log(row);
+			// console.log(color);
 			var totalObject = {
 				x: +row[xVariable],
 				y: +row[yVariable],
@@ -1133,21 +1134,23 @@ function getScatterData(csvRows, countyFilter){
 	};
 }
 function getColorScale(row){
-	// console.log(row[colorVariable]);
+	// console.log(row);
+	// console.log(colorVariable);
 	if (typeof scales[colorVariable] === 'undefined'){
+		// console.log(row[colorVariable]);
 		var colorDomain = [+_.min(csvRows,colorVariable)[colorVariable],+_.max(csvRows,colorVariable)[colorVariable]];
+		console.log(colorDomain)
 		scales[colorVariable] = d3.scale.quantize()
 		    .domain(colorDomain)
 		    .range(colorbrewer.RdPu.mod7);
-		breaks = ss.jenks(csvRows.map(function(d) { return +d[colorVariable]; }), 9);
-		// breaks[4] = breaks[4] + 1
-		jenks[colorVariable] = d3.scale.quantile()
-		    .domain(breaks)
-		    .range(colorbrewer.RdPu.mod7)
-		return jenks[colorVariable](+row[colorVariable]);
+		// breaks = ss.jenks(csvRows.map(function(d) { return +d[colorVariable]; }), 9);
+		// jenks[colorVariable] = d3.scale.quantile()
+		//     .domain(breaks)
+		//     .range(colorbrewer.RdPu.mod7)
+		return scales[colorVariable](+row[colorVariable]);
 	}
 	else{
-		return jenks[colorVariable](+row[colorVariable]);
+		return scales[colorVariable](+row[colorVariable]);
 	}	
 }
 // function filterCounties(county){
@@ -1186,7 +1189,7 @@ function initialize() {
 	});
 	var currentLayer;
 	
-	var csvUrl = 'Draft_Visualization_08072015.csv';
+	var csvUrl = 'Draft_Visualization_08242015.csv';
 	// 'BC_Current_Future_0812.csv'
 	d3.text(csvUrl, function(unparsedData){
 
@@ -1194,7 +1197,14 @@ function initialize() {
 		rawRows.splice(0,1);
 		csv = d3.csv.parse(unparsedData);
 		csvRows = csv;
-			
+		var csvVariables = d3.keys(csvRows[0]);
+		csvVariables.splice(0,1)
+		csvVariables.splice(0,1)
+		$.each(csvVariables, function(i, csvVar){
+			var selected = i === 1 ? '' : 'selected';
+			$('.scatterVariable').append('<option ' + selected + '>' + csvVar + '</option>');	
+		})
+		
 			// console.log(csv);
 			regionalData = d3.nest()
 				// .key(function(d) { return d.ID; })
