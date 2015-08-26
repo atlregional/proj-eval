@@ -345,6 +345,7 @@ function getFilters(){
 	return filters;
 }
 function closeChart(){
+	$('#countyFilter').val('');
 	if (previousProps !== null){
 		info.update();
 		location.hash = '';
@@ -1154,6 +1155,12 @@ function getColorScale(row){
 
 // }
 function initialize() {
+	var variableString = $('<ul>');
+	$.each(variableMap, function(variable, data){
+		var variableItem = $('<li><strong>' + variable + '</strong> - ' + data.description + '</li>');
+		variableString.append(variableItem);
+	})
+	$('#variable-list').html(variableString);
 	$('.scatterVariable').change(function(){
 		var countyFilter = ''
 		if (this.id === 'countyFilter'){
@@ -1176,9 +1183,7 @@ function initialize() {
 				searchHighlightIds.push(layer.ID);
 			});
 		}
-		
-		
-	})
+	});
 	var currentLayer;
 	
 	var csvUrl = 'Draft_Visualization_08072015.csv';
@@ -1357,15 +1362,23 @@ function initialize() {
 				thead.append(tr);
 				table.append(thead);
 				$.each(rawRows, function(i, row){
-					var description;
+					var description = 'No description';
 					// console.log(projMap[row[1]][0]);
 					if (typeof projMap[row[1]] !== 'undefined')
 						description = projMap[row[1]][0].properties.PRJ_DESC;
 					else
-						description = '';
+						description = 'No description';
 					row.splice(2, 0, description);
 					// row.splice(0, 0, '<a href="#' + row[1] + '">' + row[1] + '</a>')
 					row[1] = '<a class="project-row" id="'+row[1].replace(/ /gi, "-")+'-row" href="#' + row[1] + '">' + row[1] + '</a>';
+					for (var i = 0; i < row.length; i++) {
+						if (i === row.length - 1){
+							row[i] = formats['Annual Cost'](row[i]);
+						}
+						else if ( i > 2 && !isNaN(row[i])){
+							row[i] = formats.other(row[i]);
+						}
+					};
 				});
 				arrivalsDatatable = table.DataTable( {
 					"order": [[ 1, "asc" ]],
