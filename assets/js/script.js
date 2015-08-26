@@ -87,82 +87,122 @@ var closeChartButton = ' <button onclick="closeChart()" class="btn btn-xs btn-de
 var previousMouseId;
 var formats = {};
 var searchHighlightIds = [];
+
+var xVariablePreset = 'current_score'
+var yVariablePreset = 'future_score'
+var rVariablePreset = 'bc_2040'
+var colorVariablePreset = 'total_cost'
+
 var variableMap = {
-	"Annual Cost": {
-		description: "Cost of project/years of construction",
-		name: ""
+	"ID":{
+		"name": "Project ID",
+		"description": "",
+		"column_chart": false
 	},
-	"Annual Benefit 2040": {
-		description: "Monetary benefit of the project in millions if it is built in 2040 with no other projects",
-		name: ""
+	"county":{
+		"name": "County",
+		"description": "",
+		"column_chart": false
 	},
-	"BC 2040": {
-		description: "Benefit/Cost of project if it were built in 2040 with no other projects ",
-		name: ""
+	"total_cost":{
+		"name": "Cost in Millions",
+		"description": "",
+		"column_chart": false
 	},
-	"BC 2015": {
-		description: "Benefit/Cost of project if it were built in 2015 with no other projects",
-		name: ""
+	"benefit_2015":{
+		"name": "2015 Benefit in Millions",
+		"description": "Monetary benefit of the project in millions if it is built in 2015",
+		"column_chart": false
 	},
-	"Current Score": {
-		description: "The sum of the weighted current data points indicating need",
-		name: ""
+	"benefit_2040":{
+		"name": "2040 Benefit in Millions",
+		"description": "Monetary benefit of the project in millions if it is built in 2040",
+		"column_chart": false
 	},
-	"Current Accessibility": {
-		description: "The percent of vehicles going to or coming from an activity center on the project link without the project",
-		name: ""
+	"bc_2015":{
+		"name": "2015 Benefit/Cost",
+		"description": "Benefit/Cost of project if it were built in 2015",
+		"column_chart": false
 	},
-	"Current Air Quality": {
-		description: "Average concentration of particulate matter around project link without the project",
-		name: ""
+	"bc_2040":{
+		"name": "2040 Benefit/Cost",
+		"description": "Benefit/Cost of project if it were built in 2040 ",
+		"column_chart": false
 	},
-	"Current Equitable Target Areas": {
-		description: "Whether or not project lies within an ETA",
-		name: ""
+	"current_congestion":{
+		"name": "Current Congestion Index",
+		"description": "Travel Time Index on project link",
+		"column_chart": true
 	},
-	"Current Buffer Index": {
-		description: "Trip reliability on project link without the project",
-		name: ""
+	"currnet_safety":{
+		"name": "Current Safety Index",
+		"description": "Ratio of crash rate/ average crash rate by facility type",
+		"column_chart": true
 	},
-	"Current Freight": {
-		description: "Whether or not project lies within the ASTRO Network",
-		name: ""
+	"current_freight":{
+		"name": "Current Freight Index",
+		"description": "Whether or not project lies within the ASTRO Network",
+		"column_chart": true
 	},
-	"Current Safety": {
-		description: "Ratio of crash rate/ average crash rate by facility type",
-		name: ""
+	"currnet_reliability":{
+		"name": "Current Reliability Index",
+		"description": "Trip reliability on project link using Buffer Index",
+		"column_chart": true
 	},
-	"Current Congestion": {
-		description: "TTI on project link without the project",
-		name: ""
+	"current_eta":{
+		"name": "Current Equity Index",
+		"description": "Whether or not project lies within an ETA",
+		"column_chart": true
 	},
-	"Future Score": {
-		description: "The sum of the weighted future data points indicating performance",
-		name: ""
+	"current_air":{
+		"name": "Current Air Quality Index",
+		"description": "Average concentration of particulate matter around project link ",
+		"column_chart": true
 	},
-	"Future Volume": {
-		description: "Volume/Mile categorized",
-		name: ""
+	"current_access":{
+		"name": "Current Accessibility Index",
+		"description": "The percent of vehicles going to or coming from an activity center on the project link ",
+		"column_chart": true
 	},
-	"Future Air Quality": {
-		description: "Difference in level of particulates regionally build-no build",
-		name: ""
+	"current_score":{
+		"name": "Need Score",
+		"description": "The sum of the weighted current data points indicating need",
+		"column_chart": false
 	},
-	"Future Deliverability": {
-		description: "Total environmental obstacles along project links inversed so high value= high deliverability",
-		name: ""
+	"future_congestion":{
+		"name": "Future Congestion Index",
+		"description": "Difference in VHD on the project link build-no build",
+		"column_chart": true
 	},
-	"Future Freight": {
-		description: "Difference in truck VMT on link build-no build",
-		name: ""
+	"future_access":{
+		"name": "Future Accessibility Index",
+		"description": "Difference in percent of vehicles going to or coming from an activity center on the project link build-no build",
+		"column_chart": true
 	},
-	"Future Accessibility": {
-		description: "Difference in percent of vehicles going to or coming from an activity center on the project link build-no build",
-		name: ""
+	"future_freight":{
+		"name": "Future Freight Index",
+		"description": "Difference in truck VMT on link build-no build",
+		"column_chart": true
 	},
-	"Future Congestion": {
-		description: "Difference in VHD on the project link build-no build",
-		name: ""
+	"future_deliverable":{
+		"name": "Future Deliverability Index",
+		"description": "Total environmental obstacles along project links inversed so high value= high deliverability",
+		"column_chart": true
+	},
+	"future_air":{
+		"name": "Future Air Quality Index",
+		"description": "Difference in level of particulates regionally build-no build",
+		"column_chart": true
+	},
+	"future_volume":{
+		"name": "Future Volume Index",
+		"description": "Volume/Mile categorized",
+		"column_chart": true
+	},
+	"future_score":{
+		"name": "Performance Score",
+		"description": "The sum of the weighted future data points indicating performance",
+		"column_chart": false
 	},
 };
 formats['Annual Cost'] = d3.format('$,.2f');
@@ -255,6 +295,21 @@ $(function() {
 		if (tableHighlightId !== null && !filterBool)
 			removeHighlightChartPoint(tableHighlightId);
 	});
+	$('#clearFilter').click(function(){
+		filterBool = false;
+		$.each(searchHighlightIds, function(i, id){
+			removeHighlightChartPoint(id);
+		});
+		var layers = counters.getLayers();
+		$.each(layers, function(i, layer){
+			layer.setStyle({
+        		color: getColorScale(csvMap[layer.feature.properties.ID][0]),
+        		opacity: 0.5,
+        		fillOpacity: 0.5,
+        		weight: 5
+        	});
+        });
+    });
 	$('#filterChart').click(function(){
 		var searchTerm = $(".dataTables_filter input").val();
 		if (searchTerm.length > 1){
@@ -265,7 +320,7 @@ $(function() {
 			var rows = table.$('tr', {"filter":"applied"})
 			console.log(rows)
 			$.each(rows, function(i, row){
-				id = $($(row).children()[1]).text();
+				id = $($(row).children()[0]).text();
 				console.log(id);
 				highlightChartPoint(id);
 				searchHighlightIds.push(id);
@@ -678,7 +733,7 @@ function getStationData(layer, source){
 	$('#'+id.replace(/ /gi, "-")+'-row').closest('tr').addClass('warning');
 	var description = layer.feature.properties.PRJ_DESC !== null ? toTitleCase(layer.feature.properties.PRJ_DESC) : 'No description';
 	description += closeChartButton;
-	var county = csvMap[id][0].County;
+	var county = csvMap[id][0].county;
 	// console.log(county);
 	layer.setStyle({
 		fillColor: highlightStroke,
@@ -689,17 +744,26 @@ function getStationData(layer, source){
 	});
 	info.update(layer.feature.properties);
 	var categories = d3.keys(csvMap['AR-959'][0]);
-	var index = categories.indexOf('County');
+	var index = categories.indexOf('county');
 	categories.splice(index, 1);
 	index = categories.indexOf('ID');
 	categories.splice(index, 1);
-	index = categories.indexOf('Cost');
+	index = categories.indexOf('total_cost');
+	categories.splice(index, 1);
+	index = categories.indexOf('benefit_2015');
+	categories.splice(index, 1);
+	index = categories.indexOf('benefit_2040');
+	categories.splice(index, 1);
+	index = categories.indexOf('bc_2015');
+	categories.splice(index, 1);
+	index = categories.indexOf('bc_2040');
 	categories.splice(index, 1);
 	// console.log(csvMap[id]);
 	// console.log(id);
 	var data;
 	if (typeof csvData[id] !== 'undefined') {
 		data = csvData[id].data;
+		console.log(data)
 	}
 	else{
 		$('#chart').html('No data for project ID <b>' + id + '</b>.');
@@ -713,7 +777,7 @@ function getStationData(layer, source){
 		data: data,
 		county: countyData[county]
 	};
-	var variableList = ['Current Score', 'Future Score', 'Annual Cost', 'BC 2015', 'BC 2040', 'Annual Benefit 2040'];
+	var variableList = ['current_score', 'future_score', 'total_cost', 'bc_2015', 'bc_2040'];
 	drawChart(chartData, 'totals');
 	var summaryString = getSummaryString(variableList, csvMap[id][0]);
 	$('#data-summary')
@@ -722,7 +786,7 @@ function getStationData(layer, source){
 		.append(summaryString);
 	// console.log(chartData);
 	$('[data-toggle="popover"]').popover();
-	$('[data-toggle="tooltip"]').tooltip()
+	$('[data-toggle="tooltip"]').tooltip();
 	previousLayer = layer;
 	// currentData = rollup;
 }
@@ -815,10 +879,13 @@ function getSummaryString(variableList, row){
 			projValue = formats.other(projValue);
 			regionalValue = formats.other(regionalValue);
 		}
+		var description = '';
+		if ( variableMap[variableList[i]].description !== ''){
+			description = ' <span data-toggle="tooltip" data-placement="right" title="' + variableMap[variableList[i]].description + '" class="glyphicon glyphicon-info-sign" aria-hidden="true"></span>';
+		}
 		tBody.append(
-			'<tr><td>' +variableList[i]+' <span data-toggle="tooltip" data-placement="right" title="'
-			+ variableMap[variableList[i]].description + 
-			'" class="glyphicon glyphicon-info-sign" aria-hidden="true"></span></td><td>' + projValue +  '</td>' + 
+			'<tr><td>' +variableMap[variableList[i]].name
+			+ description + '</td><td>' + projValue +  '</td>' + 
 			'<td>' + regionalValue + '</td></tr>'
 		);
 	};
@@ -884,6 +951,7 @@ function highlightChartPoint(id){
 	if (previousProps === null){
 		var p =_.find($('#chart').highcharts().series[0].points, function(obj){return obj.name == id});
 		// var p = $('#chart').highcharts().series[0].data[0];
+		console.log(id);
 		var color = getColorScale(csvMap[id][0]);
 		// console.log(p);
 		p.update({
@@ -1030,6 +1098,7 @@ function drawScatter(data){
                         },
                         click: function () {
                         	var id = this.name;
+                        	window.location.hash = id;
                         	var layer = _.find(counters.getLayers(), function(layer){return layer.feature.properties.ID == id;});
                         	getStationData(layer, 'chart');
                         }
@@ -1087,7 +1156,8 @@ function matchKey(datapoint, key_variable){
 	return(parseFloat(key_variable[0][datapoint]));
 };
 function convertHex(hex,opacity){
-	// console.log(hex);
+	if(typeof hex === 'undefined')
+		console.log(hex);
     hex = hex.replace('#','');
     r = parseInt(hex.substring(0,2), 16);
     g = parseInt(hex.substring(2,4), 16);
@@ -1113,7 +1183,11 @@ function getScatterData(csvRows, countyFilter){
 		// if (countyFilter === '' || typeof countyFilter === 'undefined' || countyFilter === row.County){
 			var pointSize = getPointSize(row);
 			color = getColorScale(row);
-			// console.log(color);
+			if (typeof color === 'undefined'){
+				console.log(color);
+				console.log(row);
+
+			}
 			var totalObject = {
 				x: +row[xVariable],
 				y: +row[yVariable],
@@ -1164,6 +1238,16 @@ function initialize() {
 		variableString.append(variableItem);
 	})
 	$('#variable-list').html(variableString);
+
+	$.each(variableMap, function(csvVar, data){
+		// var selected = i === 1 ? '' : 'selected';
+		selected = ''
+		$('.scatterVariable').append('<option value=' + csvVar + ' ' + selected + '>' + data.name + '</option>');	
+	});
+	$('#xVariable').val(xVariablePreset);
+	$('#yVariable').val(yVariablePreset);
+	$('#rVariable').val(rVariablePreset);
+	$('#colorVariable').val(colorVariablePreset);
 	$('.scatterVariable').change(function(){
 		var countyFilter = ''
 		if (this.id === 'countyFilter'){
@@ -1189,113 +1273,47 @@ function initialize() {
 	});
 	var currentLayer;
 	
-	var csvUrl = 'Draft_Visualization_08242015.csv';
+	var csvUrl = 'Draft_Visualization_08262015.csv';
 	// 'BC_Current_Future_0812.csv'
 	d3.text(csvUrl, function(unparsedData){
 
 		rawRows = d3.csv.parseRows(unparsedData);
 		rawRows.splice(0,1);
 		csv = d3.csv.parse(unparsedData);
-		csvRows = csv;
-		var csvVariables = d3.keys(csvRows[0]);
-		csvVariables.splice(0,1)
-		csvVariables.splice(0,1)
-		$.each(csvVariables, function(i, csvVar){
-			var selected = i === 1 ? '' : 'selected';
-			$('.scatterVariable').append('<option ' + selected + '>' + csvVar + '</option>');	
-		})
-		
+		csvRows = csv;		
 			// console.log(csv);
 			regionalData = d3.nest()
 				// .key(function(d) { return d.ID; })
 				.rollup(function(d){
-					return [
-						d3.mean(d,function(g) {
-							return g['Current Accessibility'];
-						}),
-						d3.mean(d,function(g) {
-							return g['Current Air Quality'];
-						}),
-						d3.mean(d,function(g) {
-							return g['Current Buffer Index'];
-						}),
-						d3.mean(d,function(g) {
-							return g['Current Congestion'];
-						}),
-						d3.mean(d,function(g) {
-							return g['Current Equitable Target Areas'];
-						}),
-						d3.mean(d,function(g) {
-							return g['Current Freight'];
-						}),
-						d3.mean(d,function(g) {
-							return g['Current Safety'];
-						}),
-						d3.mean(d,function(g) {
-							return g['Future Accessibility'];
-						}),
-						d3.mean(d,function(g) {
-							return g['Future Air Quality'];
-						}),
-						d3.mean(d,function(g) {
-							return g['Future Congestion'];
-						}),
-						d3.mean(d,function(g) {
-							return g['Future Deliverability'];
-						}),
-						d3.mean(d,function(g) {
-							return g['Future Freight'];
-						}),
-						d3.mean(d,function(g) {
-							return g['Future Volume'];
-						}),
-					];
+					var dataArray = [];
+					$.each(variableMap, function(varName, data){
+						if (data.column_chart){
+							console.log(varName);
+							dataArray.push(
+								d3.mean(d,function(g) {
+									return g[varName];
+								})
+							);
+						}
+					});
+					return dataArray;
 				})
 				.map(csv);
 			countyData = d3.nest()
-				.key(function(d) { return d.County; })
+				.key(function(d) { return d.county; })
 				.rollup(function(d){
-					return [
-						d3.mean(d,function(g) {
-							return g['Current Accessibility'];
-						}),
-						d3.mean(d,function(g) {
-							return g['Current Air Quality'];
-						}),
-						d3.mean(d,function(g) {
-							return g['Current Buffer Index'];
-						}),
-						d3.mean(d,function(g) {
-							return g['Current Congestion'];
-						}),
-						d3.mean(d,function(g) {
-							return g['Current Equitable Target Areas'];
-						}),
-						d3.mean(d,function(g) {
-							return g['Current Freight'];
-						}),
-						d3.mean(d,function(g) {
-							return g['Current Safety'];
-						}),
-						d3.mean(d,function(g) {
-							return g['Future Accessibility'];
-						}),
-						d3.mean(d,function(g) {
-							return g['Future Air Quality'];
-						}),
-						d3.mean(d,function(g) {
-							return g['Future Congestion'];
-						}),
-						d3.mean(d,function(g) {
-							return g['Future Deliverability'];
-						}),
-						d3.mean(d,function(g) {
-							return g['Future Freight'];
-						}),
-						d3.mean(d,function(g) {
-							return g['Future Volume'];
-						}),
-					];
+					var dataArray = [];
+					$.each(variableMap, function(varName, data){
+						if (data.column_chart){
+							console.log(varName);
+							dataArray.push(
+								d3.mean(d,function(g) {
+									return g[varName];
+								})
+							);
+						}
+					});
+					return dataArray;
 				})
 				.map(csv);
 			var totals = {};
@@ -1315,27 +1333,35 @@ function initialize() {
 				.map(csv);
 
 			countyMap = d3.nest()
-				.key(function(d) { return d.County; })
+				.key(function(d) { return d.county; })
 				.map(csv);
 			// console.log(csvMap);
 			var chartData = getScatterData(csv);
+			drawScatter(chartData);
+
 			csv.forEach(function(row){
 				var newRow  = _.clone(row);
-				delete newRow['Current Score'];
-				delete newRow['Future Score'];
-				delete newRow['BC 2015'];
-				delete newRow['BC 2040'];
-				delete newRow['Annual Benefit 2040'];
+				// console.log(newRow);
+				$.each(variableMap, function(varName, data){
+					if (!data.column_chart){
+						// console.log(varName);
+						delete newRow[varName];
+					}
+				});
+				// console.log(newRow);
 				var values = d3.values(newRow);
 				values = _.map(values, function(num){ return +num; });
-				values.splice(0,1);
-				values.splice(0,1);
-				values.splice(values.length - 1,1);
+				
+				// values.splice(0,1);
+				// values.splice(0,1);
+				// values.splice(values.length - 1,1);
+				// values.splice(values.length - 1,1);
+				// console.log(values);
 				// console.log(row);
 				csvData[row.ID] = {};
 				csvData[row.ID].data = values;
 			})
-			drawScatter(chartData);
+			
 
 			// get line data
 
@@ -1374,13 +1400,15 @@ function initialize() {
 				$.each(rawRows, function(i, row){
 					var description = 'No description';
 					// console.log(projMap[row[1]][0]);
-					if (typeof projMap[row[1]] !== 'undefined')
-						description = projMap[row[1]][0].properties.PRJ_DESC;
-					else
+					if (typeof projMap[row[0]] !== 'undefined'){
+						description = projMap[row[0]][0].properties.PRJ_DESC;
+					}
+					else{
 						description = 'No description';
+					}
 					row.splice(2, 0, description);
-					// row.splice(0, 0, '<a href="#' + row[1] + '">' + row[1] + '</a>')
-					row[1] = '<a class="project-row" id="'+row[1].replace(/ /gi, "-")+'-row" href="#' + row[1] + '">' + row[1] + '</a>';
+					// row.splice(0, 0, '<a href="#' + row[0] + '">' + row[0] + '</a>')
+					row[0] = '<a class="project-row" id="'+row[0].replace(/ /gi, "-")+'-row" href="#' + row[0] + '">' + row[0] + '</a>';
 					for (var i = 0; i < row.length; i++) {
 						if (i === row.length - 1){
 							row[i] = formats['Annual Cost'](row[i]);
