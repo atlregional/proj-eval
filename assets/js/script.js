@@ -19,25 +19,7 @@ var filterMap = {
 	countType: 'count_type',
 	station: 'station_id'
 };
-var technology = {
-	'V': {
-		color: '#1b9e77',
-		label: 'Video'
-	},
-	'H': {
-		color: '#d95f02',
-		label: 'Manual'
-	},
-	'R': {
-		color: '#7570b3',
-		label: 'Pneumatic'
-	},
-	'I': {
-		color: '#e7298a',
-		label: 'Infrared'
-	}
-};
-// var technology;
+
 var opacities =  [
 	{
 		value:0.25,
@@ -82,13 +64,15 @@ var legend = L.control({position: 'bottomright'});
 var opacityLegend = L.control({position: 'bottomleft'});
 var info = L.control();
 
-
+colorbrewer.RdPu.mod7 = colorbrewer.RdPu[9];
+colorbrewer.RdPu.mod7.splice(0,1);
+colorbrewer.RdPu.mod7.splice(0,1);
 var filterBool = false;
 var projMap, projTypeMap;
 var csvData = {};
 var regionalData, countyData;
 var colorScale;
-var csvMap;
+var csvMap, countyMap;
 var xVariable = $('#xVariable').val();
 var yVariable = $('#yVariable').val();
 var rVariable = $('#rVariable').val();
@@ -98,8 +82,89 @@ var newCsv, csv;
 var csvRows;
 var previousProps = null;
 var scales = {};
+var jenks = {};
+var closeChartButton = ' <button onclick="closeChart()" class="btn btn-xs btn-default">&times;</button>';
 var previousMouseId;
 var formats = {};
+var searchHighlightIds = [];
+var variableMap = {
+	"Annual Cost": {
+		description: "Cost of project/years of construction",
+		name: ""
+	},
+	"Annual Benefit 2040": {
+		description: "Monetary benefit of the project in millions if it is built in 2040 with no other projects",
+		name: ""
+	},
+	"BC 2040": {
+		description: "Benefit/Cost of project if it were built in 2040 with no other projects ",
+		name: ""
+	},
+	"BC 2015": {
+		description: "Benefit/Cost of project if it were built in 2015 with no other projects",
+		name: ""
+	},
+	"Current Score": {
+		description: "The sum of the weighted current data points indicating need",
+		name: ""
+	},
+	"Current Accessibility": {
+		description: "The percent of vehicles going to or coming from an activity center on the project link without the project",
+		name: ""
+	},
+	"Current Air Quality": {
+		description: "Average concentration of particulate matter around project link without the project",
+		name: ""
+	},
+	"Current Equitable Target Areas": {
+		description: "Whether or not project lies within an ETA",
+		name: ""
+	},
+	"Current Buffer Index": {
+		description: "Trip reliability on project link without the project",
+		name: ""
+	},
+	"Current Freight": {
+		description: "Whether or not project lies within the ASTRO Network",
+		name: ""
+	},
+	"Current Safety": {
+		description: "Ratio of crash rate/ average crash rate by facility type",
+		name: ""
+	},
+	"Current Congestion": {
+		description: "TTI on project link without the project",
+		name: ""
+	},
+	"Future Score": {
+		description: "The sum of the weighted future data points indicating performance",
+		name: ""
+	},
+	"Future Volume": {
+		description: "Volume/Mile categorized",
+		name: ""
+	},
+	"Future Air Quality": {
+		description: "Difference in level of particulates regionally build-no build",
+		name: ""
+	},
+	"Future Deliverability": {
+		description: "Total environmental obstacles along project links inversed so high value= high deliverability",
+		name: ""
+	},
+	"Future Freight": {
+		description: "Difference in truck VMT on link build-no build",
+		name: ""
+	},
+	"Future Accessibility": {
+		description: "Difference in percent of vehicles going to or coming from an activity center on the project link build-no build",
+		name: ""
+	},
+	"Future Congestion": {
+		description: "Difference in VHD on the project link build-no build",
+		name: ""
+	},
+};
 formats['Annual Cost'] = d3.format('$,.2f');
 // formats['Current Score'] = d3.format('.2f');
 // formats['Future Score'] = d3.format('.2f');
@@ -119,6 +184,7 @@ info.update = function (props) {
 	}
 	// console.log(this);
 	if (props){
+		this._div.innerHTML = 'Currently viewing project ' + props.ID + closeChartButton;
 		previousProps = props;
 		$('#close-chart').show().removeClass('hidden');
 		$('#chartPanel').append('<div id="data-summary"></div>');
@@ -127,7 +193,7 @@ info.update = function (props) {
 		// $('#chartPanel').html( 
 		// // '<h4><strong>ARC Project Evaluation</strong></h4>' +
 		// '');
-		
+		this._div.innerHTML = 'Click a project on the map or chart for more info.'
 		$('#close-chart').hide();
 		$('#data-summary').remove();
 		if (typeof csvRows !== 'undefined'){
@@ -140,8 +206,9 @@ info.update = function (props) {
 		closeChart();
 	});
 };
-info.update();
 info.addTo(map);
+info.update();
+
 
 
 // READY!
@@ -168,27 +235,7 @@ $(function() {
 	    $('#chart').css('visibility', 'initial');
 	    chart.reflow();
 	});
-	$('#drawChart').click(function(e){
-		// console.log('draw chart');
-	});
-    $("#temp-comparison").on('focus', function () {
-        // Store the current value on focus and on change
-        previous = this.value;
-    }).change(function() {
-        // Do something with the previous value after the change
-        // alert(previous);
-        $(previous).prop('checked', false);
-        $(this.value).prop('checked', true);
-        if (this.value === '#temp-min' || this.value === '#temp-max'){
-        	$('#temp-field').show();
-        }
-        else{
-        	$('#temp-field').hide();
-        	$('#temp.single').val('');
-        }
-        // Make sure the previous value is updated
-        // previous = this.value;
-    });
+	
     var tableHighlightId = null;
     // var table = $('#projectTable').DataTable();
     $('#projectTable').on('mouseover', 'tr', function(){
@@ -208,22 +255,18 @@ $(function() {
 		if (tableHighlightId !== null && !filterBool)
 			removeHighlightChartPoint(tableHighlightId);
 	});
-	var searchHighlightIds = [];
 	$('#filterChart').click(function(){
 		var searchTerm = $(".dataTables_filter input").val();
 		if (searchTerm.length > 1){
 			filterBool = true;
-			$.each(searchHighlightIds, function(i, id){
-				removeHighlightChartPoint(id);
-			});
+			removeHighlightIds();
 			console.log(searchTerm);
 			table = $('#projectTable').DataTable();
 			var rows = table.$('tr', {"filter":"applied"})
 			console.log(rows)
 			$.each(rows, function(i, row){
-				// id = 'WA-002'
 				id = $($(row).children()[1]).text();
-				// console.log(row);
+				console.log(id);
 				highlightChartPoint(id);
 				searchHighlightIds.push(id);
 				var layers = counters.getLayers();
@@ -258,130 +301,15 @@ $(function() {
 			});
 		}
 	})
-	$('#clearFilter').click(function(){
-		filterBool = false;
-		$.each(searchHighlightIds, function(i, id){
-			removeHighlightChartPoint(id);
-		});
-		var layers = counters.getLayers();
-		$.each(layers, function(i, layer){
-			layer.setStyle({
-        		color: getColorScale(csvMap[layer.feature.properties.ID][0]),
-        		opacity: 0.5,
-        		fillOpacity: 0.5,
-        		weight: 5
-        	});
-        });
-	})
-	$('#projectTable').on('search.dt', function(e){
-		// table = $('#projectTable').DataTable();
-		// var api = this.api();
 
-	});
-	$('.project-row').on('mouseover', function(){
-		// console.log('row');
-	});
-    $('input[type=radio][name=tempRadios]').on('click', function() {
-		if (this.id === 'temp-max') {
-			// console.log(this.id);
-			// bind radio button value to temp-comparison checkbox
-			$('#temp-comparison option[value="#temp-max"]').prop('selected', true);
-		}
-		else if (this.id === 'temp-min') {
-			$('#temp-comparison option[value="#temp-min"]').prop('selected', true);
-		}
-	});
-    $('.special').on('change keyup', function(e){
-    	// console.log('clearing single');
-    	$('#temp.single').val('');
-    	$(".single option:selected").removeAttr("selected");
-    });
-    $('.single').on('change keyup', function(e){
-    	// console.log('clearing special');
-    	$('#temp.special').val('');
-    	$(".special option:selected").removeAttr("selected");
-    });
+
+
     // Instantiate a slider
     var bootstrapEnv = findBootstrapEnvironment();
     initialScaleFactor = 5;
 	if (bootstrapEnv === 'xs' || bootstrapEnv === 'sm'){
 		initialScaleFactor = 10;
 	}
-    $('.filter').on('keyup change', function(e){
-    	$('#main-alert').css('visibility','hidden');
-    	if (this.id === 'dow' || this.id === 'season'){
-    		$("#date option:selected").removeAttr("selected");
-    	}	
-    	else if (this.id === 'date'){
-    		$("#dow option:selected").removeAttr("selected");
-    		$("#season.special option:selected").removeAttr("selected");
-    	}
-    	var filters = getFilters();
-    	var filterVal = $(this).val();
-    	// console.log(filters)
-    	// console.log(filterPrev)
-    	// console.log(_.isEqual(filters, filterPrev));
-    	if (e.type === 'keyup' ){
-    		if (this.id !== 'temp'){
-    			// console.log('keyup = no change');
-    			return;
-    		}
-    		// console.log(filterVal);
-    		if (this.id === 'temp' && filterVal.length < 2){
-    			return;
-    		}
-    		else{
-
-    		}
-    		
-    	}
-    	else {
-    		if (this.id === 'temp'){
-    			// console.log('temp not changed');
-    			return;
-    		}
-    	}
-    	if (typeof filterPrev === 'undefined' || !_.isEqual(filters, filterPrev)){
-    		filterPrev = filters;
-    		filterData(this, filters, e);
-    	}
-    	else{
-    		// console.log('filters have not changed');
-    		filterPrev = filters;
-    		if (prevError){
-    			showFilterError(filters);
-    			// clearFilter();
-    		}
-    	}
-		
-    }); // end .filter change
-    $('#go-button').on('click', function(e){
-    	var filters = getFilters();
-    	// console.log(filters);
-    	// console.log(filterPrev);
-    	// console.log(_.isEqual(filters, filterPrev));
-    	// if (typeof filterPrev === 'undefined' || !_.isEqual(filters, filterPrev)){
-    		filterPrev = filters;
-    		filterData(this, filters, e);
-		
-    }); // end .go-button click
-    $('#collapse-button').on('click', function(e){
-    	var $this = $(this);
-    	if ($this.html() === '+'){
-    		$this.html('-');
-    		$('#collapse-button').addClass('active');
-    	}
-    	else{
-    		$this.html('+');
-    		$('#collapse-button').removeClass('active');
-    	}
-		
-    }); // end .go-button click
-	$('#clear-dates').on('click', function(e){
-		// clearFilter('dates');
-		// clearFilter('dow');
-		clearFilter();
-	});
   }); // end DOMContentLoaded
 function getFilters(){
 	var filters;
@@ -439,6 +367,14 @@ function getHash(){
 	else if( id === ''){
 		closeChart();
 	}
+}
+
+function removeHighlightIds(){
+	$.each(searchHighlightIds, function(i, id){
+		removeHighlightChartPoint(id);
+		if (i === searchHighlightIds.length - 1)
+		searchHighlightIds = [];
+	});
 }
 function filterData($this, filters, e){
 	strokeBool = false;
@@ -740,7 +676,7 @@ function getStationData(layer, source){
 	}
 	$('#'+id.replace(/ /gi, "-")+'-row').closest('tr').addClass('warning');
 	var description = layer.feature.properties.PRJ_DESC !== null ? toTitleCase(layer.feature.properties.PRJ_DESC) : 'No description';
-	description += ' <button onclick="closeChart()" class="btn btn-xs btn-default">Close &times;</button>'
+	description += closeChartButton;
 	var county = csvMap[id][0].County;
 	// console.log(county);
 	layer.setStyle({
@@ -784,7 +720,8 @@ function getStationData(layer, source){
 		.append(description)
 		.append(summaryString);
 	// console.log(chartData);
-
+	$('[data-toggle="popover"]').popover();
+	$('[data-toggle="tooltip"]').tooltip()
 	previousLayer = layer;
 	// currentData = rollup;
 }
@@ -877,7 +814,12 @@ function getSummaryString(variableList, row){
 			projValue = formats.other(projValue);
 			regionalValue = formats.other(regionalValue);
 		}
-		tBody.append('<tr><td>' +variableList[i]+'</td><td>' + projValue +  '</td><td>' + regionalValue + '</td></tr>');
+		tBody.append(
+			'<tr><td>' +variableList[i]+' <span data-toggle="tooltip" data-placement="right" title="'
+			+ variableMap[variableList[i]].description + 
+			'" class="glyphicon glyphicon-info-sign" aria-hidden="true"></span></td><td>' + projValue +  '</td>' + 
+			'<td>' + regionalValue + '</td></tr>'
+		);
 	};
 	summaryTable.append(tBody);
 	return summaryTable;
@@ -937,27 +879,62 @@ function drawChart(data, type){
     });
 }
 function highlightChartPoint(id){
+	// Check if we're looking at scatterplot or specific project
 	if (previousProps === null){
-		var p =_.find($('#chart').highcharts().series[0].data, function(obj){return obj.name == id});
+		var p =_.find($('#chart').highcharts().series[0].points, function(obj){return obj.name == id});
+		// var p = $('#chart').highcharts().series[0].data[0];
 		var color = getColorScale(csvMap[id][0]);
+		// console.log(p);
 		p.update({
 			marker: {
 				fillColor: convertHex(color, 1.0),
-				lineColor: "#333",
+				lineColor: '#000',
 				lineWidth: 2,
 				radius: getPointSize(csvMap[id][0]) + 1
 			}
 		});
+		// console.log(p);
 	}
 }
+// function highlightMoveChartPoint(id){
+// 	var chart = $('#chart').highcharts()
+// 	// Check if we're looking at scatterplot or specific project
+// 	if (previousProps === null){
+// 		var p =_.find(chart.series[0].points, function(obj){return obj.name == id});
+// 		// var p = $('#chart').highcharts().series[0].data[0];
+// 		//save the point state to a new point
+// 		var color = getColorScale(csvMap[id][0]);
+// 		var newPoint = {
+// 			x: p.x,
+// 			y: p.y,
+// 			name: p.name,
+// 			marker: {
+// 				fillColor: convertHex(color, 1.0),
+// 				lineColor: '#000',
+// 				lineWidth: 2,
+// 				radius: getPointSize(csvMap[id][0]) + 1
+// 			}
+// 		};
+// 		//remove the point
+// 		p.remove();
+// 		//add the new point at end of series
+// 		chart.series[0].addPoint(newPoint);
+// 		//select the last point
+// 		chart.series[0].points[chart.series[0].points.length - 1].select();
+// 	}	
+// }
 function removeHighlightChartPoint(id){
+	// Check if we're looking at scatterplot or specific project
 	if (previousProps === null){
-		var p =_.find($('#chart').highcharts().series[0].data, function(obj){return obj.name == id});
+		var p =_.find($('#chart').highcharts().series[0].points, function(obj){return obj.name == id});
+		// var p = $('#chart').highcharts().series[0].data[0];
 		var color = getColorScale(csvMap[id][0]);
 		p.update({
 			marker: {
 				// symbol: 'square',
 				fillColor: convertHex(color, 0.5),
+				// lineColor: '#000',
+				// lineWidth: 2,
 				// opacity: 0.5,
 				// lineColor: rgba(0,0,0,0),
 				radius: getPointSize(csvMap[id][0])
@@ -1017,7 +994,8 @@ function drawScatter(data){
                             attributes: {
                                 fill: this.color,
                                 'stroke-width': 2,
-                                stroke: '#333'
+                                stroke: '#333',
+                                // radius: 40
                             }
                         }
 
@@ -1027,6 +1005,8 @@ function drawScatter(data){
                     events: {
                         mouseOver: function () {
                         	if (!filterBool){
+
+                        		// reset previous highlighted project on the map
 	                        	if (typeof previousMouseId !== 'undefined'){
 	                        		var layer = _.find(counters.getLayers(), function(layer){return layer.feature.properties.ID == previousMouseId;})
 		                        	layer.setStyle({
@@ -1035,6 +1015,8 @@ function drawScatter(data){
 		                        		weight: 5
 		                        	});
 	                        	}
+
+	                        	// highlight this mouseovered project on the map
 	                        	var id = this.name;
 	                        	var layer = _.find(counters.getLayers(), function(layer){return layer.feature.properties.ID == id;})
 	                        	layer.setStyle({
@@ -1054,8 +1036,6 @@ function drawScatter(data){
                 },
                 events: {
                 	mouseOut: function () {
-                     //    console.log(this.name);
-                    	// var id = this.name;
                     	if (!filterBool){
 	                    	var layer = _.find(counters.getLayers(), function(layer){return layer.feature.properties.ID == previousMouseId;})
 	                    	layer.setStyle({
@@ -1072,6 +1052,10 @@ function drawScatter(data){
         series: [{
 			name: 'Project',
             data: data.data,
+            // marker : {
+            //         enabled : true,
+            //         // radius : 2
+            // },
             color: scales[colorVariable].range()
         }]
     });
@@ -1114,7 +1098,7 @@ function getPointSize(row){
 	var maxSize = _.max(csvRows,rVariable)[rVariable];
 	return +row[rVariable] / maxSize * 20;
 }
-function getScatterData(csvRows){
+function getScatterData(csvRows, countyFilter){
 	xVariable = $('#xVariable').val();
 	yVariable = $('#yVariable').val();
 	rVariable = $('#rVariable').val();
@@ -1124,18 +1108,21 @@ function getScatterData(csvRows){
 	// var colorDomain = [_.min(csvRows,colorVariable)[colorVariable],_.max(csvRows,colorVariable)[colorVariable]];
 	// console.log(csvRows);
 	csvRows.forEach(function(row){
-		var pointSize = getPointSize(row);
-		color = getColorScale(row);
-		console.log(row);
-		var totalObject = {
-			x: +row[xVariable],
-			y: +row[yVariable],
-			name: row['ID'],
-			radius: pointSize,
-			color: convertHex(color, 0.5),
+		// if (countyFilter === '' || typeof countyFilter === 'undefined' || countyFilter === row.County){
+			var pointSize = getPointSize(row);
+			color = getColorScale(row);
+			// console.log(row);
+			var totalObject = {
+				x: +row[xVariable],
+				y: +row[yVariable],
+				name: row['ID'],
+				radius: pointSize,
+				color: convertHex(color, 0.5),
 
-		};
-		dataValues.push(totalObject);
+			};
+			dataValues.push(totalObject);
+		// }
+		
 	});
 	return {
 		description: xVariable + ' vs. ' + yVariable,
@@ -1147,25 +1134,51 @@ function getScatterData(csvRows){
 function getColorScale(row){
 	// console.log(row[colorVariable]);
 	if (typeof scales[colorVariable] === 'undefined'){
-		var colorDomain = [_.min(csvRows,colorVariable)[colorVariable],_.max(csvRows,colorVariable)[colorVariable]];
+		var colorDomain = [+_.min(csvRows,colorVariable)[colorVariable],+_.max(csvRows,colorVariable)[colorVariable]];
 		scales[colorVariable] = d3.scale.quantize()
 		    .domain(colorDomain)
-		    .range(colorbrewer.RdPu[7]);
-		return scales[colorVariable](+row[colorVariable]);
+		    .range(colorbrewer.RdPu.mod7);
+		breaks = ss.jenks(csvRows.map(function(d) { return +d[colorVariable]; }), 9);
+		// breaks[4] = breaks[4] + 1
+		jenks[colorVariable] = d3.scale.quantile()
+		    .domain(breaks)
+		    .range(colorbrewer.RdPu.mod7)
+		return jenks[colorVariable](+row[colorVariable]);
 	}
 	else{
-		return scales[colorVariable](+row[colorVariable]);
+		return jenks[colorVariable](+row[colorVariable]);
 	}	
 }
+// function filterCounties(county){
+// 	// console.log(county);
+
+// }
 function initialize() {
 	$('.scatterVariable').change(function(){
-		var chartData = getScatterData(csvRows);
+		var countyFilter = ''
+		if (this.id === 'countyFilter'){
+			// countyFilter = this.value;
+			// draw map with filtered counties
+		}
+		var chartData = getScatterData(csvRows, countyFilter);
 		drawScatter(chartData);
 	});
 	$('#colorVariable').change(function(){
 		colorVariable = this.value;
 		resetMarkers();
 	});
+	$('#countyFilter').change(function(){
+		removeHighlightIds();
+		if (this.value !== ''){
+			var layers = countyMap[this.value];
+			$.each(layers, function(i, layer){
+				highlightChartPoint(layer.ID);
+				searchHighlightIds.push(layer.ID);
+			});
+		}
+		
+		
+	})
 	var currentLayer;
 	
 	var csvUrl = 'Draft_Visualization_08072015.csv';
@@ -1284,6 +1297,10 @@ function initialize() {
 			});
 			csvMap = d3.nest()
 				.key(function(d) { return d.ID; })
+				.map(csv);
+
+			countyMap = d3.nest()
+				.key(function(d) { return d.County; })
 				.map(csv);
 			// console.log(csvMap);
 			var chartData = getScatterData(csv);
@@ -1430,3 +1447,135 @@ function initialize() {
 			});
 	});
 }
+
+// Compute the matrices required for Jenks breaks. These matrices
+    // can be used for any classing of data with `classes <= n_classes`
+    ss.jenksMatrices = function(data, n_classes) {
+
+        // in the original implementation, these matrices are referred to
+        // as `LC` and `OP`
+        //
+        // * lower_class_limits (LC): optimal lower class limits
+        // * variance_combinations (OP): optimal variance combinations for all classes
+        var lower_class_limits = [],
+            variance_combinations = [],
+            // loop counters
+            i, j,
+            // the variance, as computed at each step in the calculation
+            variance = 0;
+
+        // Initialize and fill each matrix with zeroes
+        for (i = 0; i < data.length + 1; i++) {
+            var tmp1 = [], tmp2 = [];
+            for (j = 0; j < n_classes + 1; j++) {
+                tmp1.push(0);
+                tmp2.push(0);
+            }
+            lower_class_limits.push(tmp1);
+            variance_combinations.push(tmp2);
+        }
+
+        for (i = 1; i < n_classes + 1; i++) {
+            lower_class_limits[1][i] = 1;
+            variance_combinations[1][i] = 0;
+            // in the original implementation, 9999999 is used but
+            // since Javascript has `Infinity`, we use that.
+            for (j = 2; j < data.length + 1; j++) {
+                variance_combinations[j][i] = Infinity;
+            }
+        }
+
+        for (var l = 2; l < data.length + 1; l++) {
+
+            // `SZ` originally. this is the sum of the values seen thus
+            // far when calculating variance.
+            var sum = 0, 
+                // `ZSQ` originally. the sum of squares of values seen
+                // thus far
+                sum_squares = 0,
+                // `WT` originally. This is the number of 
+                w = 0,
+                // `IV` originally
+                i4 = 0;
+
+            // in several instances, you could say `Math.pow(x, 2)`
+            // instead of `x * x`, but this is slower in some browsers
+            // introduces an unnecessary concept.
+            for (var m = 1; m < l + 1; m++) {
+
+                // `III` originally
+                var lower_class_limit = l - m + 1,
+                    val = data[lower_class_limit - 1];
+
+                // here we're estimating variance for each potential classing
+                // of the data, for each potential number of classes. `w`
+                // is the number of data points considered so far.
+                w++;
+
+                // increase the current sum and sum-of-squares
+                sum += val;
+                sum_squares += val * val;
+
+                // the variance at this point in the sequence is the difference
+                // between the sum of squares and the total x 2, over the number
+                // of samples.
+                variance = sum_squares - (sum * sum) / w;
+
+                i4 = lower_class_limit - 1;
+
+                if (i4 !== 0) {
+                    for (j = 2; j < n_classes + 1; j++) {
+                        if (variance_combinations[l][j] >=
+                            (variance + variance_combinations[i4][j - 1])) {
+                            lower_class_limits[l][j] = lower_class_limit;
+                            variance_combinations[l][j] = variance +
+                                variance_combinations[i4][j - 1];
+                        }
+                    }
+                }
+            }
+
+            lower_class_limits[l][1] = 1;
+            variance_combinations[l][1] = variance;
+        }
+
+        return {
+            lower_class_limits: lower_class_limits,
+            variance_combinations: variance_combinations
+        };
+    };
+
+    // # [Jenks natural breaks optimization](http://en.wikipedia.org/wiki/Jenks_natural_breaks_optimization)
+    //
+    // Implementations: [1](http://danieljlewis.org/files/2010/06/Jenks.pdf) (python),
+    // [2](https://github.com/vvoovv/djeo-jenks/blob/master/main.js) (buggy),
+    // [3](https://github.com/simogeo/geostats/blob/master/lib/geostats.js#L407) (works)
+
+    ss.jenks = function(data, n_classes) {
+
+        // sort data in numerical order
+        data = data.slice().sort(function (a, b) { return a - b; });
+
+        // get our basic matrices
+        var matrices = ss.jenksMatrices(data, n_classes),
+            // we only need lower class limits here
+            lower_class_limits = matrices.lower_class_limits,
+            k = data.length - 1,
+            kclass = [],
+            countNum = n_classes;
+
+        // the calculation of classes will never include the upper and
+        // lower bounds, so we need to explicitly set them
+        kclass[n_classes] = data[data.length - 1];
+        kclass[0] = data[0];
+
+        // the lower_class_limits matrix is used as indexes into itself
+        // here: the `k` variable is reused in each iteration.
+        while (countNum > 1) {
+            kclass[countNum - 1] = data[lower_class_limits[k][countNum] - 2];
+            k = lower_class_limits[k][countNum] - 1;
+            countNum--;
+        }
+
+        return kclass;
+    };
