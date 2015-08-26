@@ -1234,7 +1234,8 @@ function getColorScale(row){
 function initialize() {
 	var variableString = $('<ul>');
 	$.each(variableMap, function(variable, data){
-		var variableItem = $('<li><strong>' + variable + '</strong> - ' + data.description + '</li>');
+		// if (variable !== 'ID' && variable !== 'county')
+		var variableItem = $('<li><strong>' + data.name + '</strong> - ' + data.description + '</li>');
 		variableString.append(variableItem);
 	})
 	$('#variable-list').html(variableString);
