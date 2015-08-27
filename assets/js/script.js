@@ -782,7 +782,9 @@ function getStationData(layer, source){
 	index = categories.indexOf('bc_2040');
 	categories.splice(index, 1);
 	$.each(categories, function(i, varName){
-		categories[i] = variableMap[varName].name;
+		if (typeof variableMap[varName] !== 'undefined')
+			categories[i] = variableMap[varName].name;
+		
 	});
 	// console.log(csvMap[id]);
 	// console.log(id);
