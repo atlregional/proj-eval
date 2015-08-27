@@ -97,118 +97,140 @@ var variableMap = {
 	"ID":{
 		"name": "Project ID",
 		"description": "",
-		"column_chart": false
+		"column_chart": false,
+		"format": "decimal"
 	},
 	"county":{
 		"name": "County",
 		"description": "",
-		"column_chart": false
+		"column_chart": false,
+		"format": "decimal"
 	},
 	"total_cost":{
 		"name": "Cost in Millions",
 		"description": "",
-		"column_chart": false
+		"column_chart": false,
+		"format": "dollar"
 	},
 	"benefit_2015":{
 		"name": "2015 Benefit in Millions",
 		"description": "Monetary benefit of the project in millions if it is built in 2015",
-		"column_chart": false
+		"column_chart": false,
+		"format": "dollar"
 	},
 	"benefit_2040":{
 		"name": "2040 Benefit in Millions",
 		"description": "Monetary benefit of the project in millions if it is built in 2040",
-		"column_chart": false
+		"column_chart": false,
+		"format": "dollar"
 	},
 	"bc_2015":{
 		"name": "2015 Benefit/Cost",
 		"description": "Benefit/Cost of project if it were built in 2015",
-		"column_chart": false
+		"column_chart": false,
+		"format": "decimal"
 	},
 	"bc_2040":{
 		"name": "2040 Benefit/Cost",
 		"description": "Benefit/Cost of project if it were built in 2040 ",
-		"column_chart": false
+		"column_chart": false,
+		"format": "decimal"
 	},
 	"current_congestion":{
 		"name": "Current Congestion Index",
 		"description": "Travel Time Index on project link",
-		"column_chart": true
+		"column_chart": true,
+		"format": "decimal"
 	},
-	"currnet_safety":{
+	"current_safety":{
 		"name": "Current Safety Index",
 		"description": "Ratio of crash rate/ average crash rate by facility type",
-		"column_chart": true
+		"column_chart": true,
+		"format": "decimal"
 	},
 	"current_freight":{
 		"name": "Current Freight Index",
 		"description": "Whether or not project lies within the ASTRO Network",
-		"column_chart": true
+		"column_chart": true,
+		"format": "decimal"
 	},
-	"currnet_reliability":{
+	"current_reliability":{
 		"name": "Current Reliability Index",
 		"description": "Trip reliability on project link using Buffer Index",
-		"column_chart": true
+		"column_chart": true,
+		"format": "decimal"
 	},
 	"current_eta":{
 		"name": "Current Equity Index",
 		"description": "Whether or not project lies within an ETA",
-		"column_chart": true
+		"column_chart": true,
+		"format": "decimal"
 	},
 	"current_air":{
 		"name": "Current Air Quality Index",
 		"description": "Average concentration of particulate matter around project link ",
-		"column_chart": true
+		"column_chart": true,
+		"format": "decimal"
 	},
 	"current_access":{
 		"name": "Current Accessibility Index",
 		"description": "The percent of vehicles going to or coming from an activity center on the project link ",
-		"column_chart": true
+		"column_chart": true,
+		"format": "decimal"
 	},
 	"current_score":{
 		"name": "Need Score",
 		"description": "The sum of the weighted current data points indicating need",
-		"column_chart": false
+		"column_chart": false,
+		"format": "decimal"
 	},
 	"future_congestion":{
 		"name": "Future Congestion Index",
 		"description": "Difference in VHD on the project link build-no build",
-		"column_chart": true
+		"column_chart": true,
+		"format": "decimal"
 	},
 	"future_access":{
 		"name": "Future Accessibility Index",
 		"description": "Difference in percent of vehicles going to or coming from an activity center on the project link build-no build",
-		"column_chart": true
+		"column_chart": true,
+		"format": "decimal"
 	},
 	"future_freight":{
 		"name": "Future Freight Index",
 		"description": "Difference in truck VMT on link build-no build",
-		"column_chart": true
+		"column_chart": true,
+		"format": "decimal"
 	},
 	"future_deliverable":{
 		"name": "Future Deliverability Index",
 		"description": "Total environmental obstacles along project links inversed so high value= high deliverability",
-		"column_chart": true
+		"column_chart": true,
+		"format": "decimal"
 	},
 	"future_air":{
 		"name": "Future Air Quality Index",
 		"description": "Difference in level of particulates regionally build-no build",
-		"column_chart": true
+		"column_chart": true,
+		"format": "decimal"
 	},
 	"future_volume":{
 		"name": "Future Volume Index",
 		"description": "Volume/Mile categorized",
-		"column_chart": true
+		"column_chart": true,
+		"format": "decimal"
 	},
 	"future_score":{
 		"name": "Performance Score",
 		"description": "The sum of the weighted future data points indicating performance",
-		"column_chart": false
+		"column_chart": false,
+		"format": "decimal"
 	},
 };
-formats['Annual Cost'] = d3.format('$,.2f');
+formats.dollar = d3.format('$,.2s');
 // formats['Current Score'] = d3.format('.2f');
 // formats['Future Score'] = d3.format('.2f');
-formats.other = d3.format('.2f');
+formats.decimal = d3.format('.2f');
 info.onAdd = function (map) {
     this._div = L.DomUtil.create('div', 'info'); // create a div with a class "info"
     this._div.innerHTML = 'Click a project on the map or chart for more info.'
@@ -758,6 +780,9 @@ function getStationData(layer, source){
 	categories.splice(index, 1);
 	index = categories.indexOf('bc_2040');
 	categories.splice(index, 1);
+	$.each(categories, function(i, varName){
+		categories[i] = variableMap[varName].name;
+	});
 	// console.log(csvMap[id]);
 	// console.log(id);
 	var data;
@@ -868,26 +893,25 @@ function getSummaryString(variableList, row){
 	var summaryTable = $('<table id="summary-table" class="table table-condensed" style="font-size:small; ">');
 	summaryTable.append('<thead><tr><th>Category</th><th>'+row['ID']+'</th><th>Regional</th></tr></thead>')
 	var tBody = $('<tbody>');
+	$.each(variableMap, function(varName, data){
+		if (!data.column_chart && varName !== 'ID' && varName !== 'county'){
+			var projValue = row[varName];
+			var regionalValue = regionalMap[varName]/csvRows.length;
+			projValue = formats[variableMap[varName].format](projValue);
+			regionalValue = formats[variableMap[varName].format](regionalValue);
+			var description = '';
+			if ( variableMap[varName].description !== ''){
+				description = ' <span data-toggle="tooltip" data-placement="right" title="' + variableMap[varName].description + '" class="glyphicon glyphicon-info-sign" aria-hidden="true"></span>';
+			}
+			tBody.append(
+				'<tr><td>' +variableMap[varName].name
+				+ description + '</td><td>' + projValue +  '</td>' + 
+				'<td>' + regionalValue + '</td></tr>'
+			);
+		}
+	});
 	for (var i = 0; i < variableList.length; i++) {
-		var projValue = row[variableList[i]];
-		var regionalValue = regionalMap[variableList[i]]/csvRows.length;
-		if (typeof formats[variableList[i]] !== 'undefined'){
-			projValue = formats[variableList[i]](projValue);
-			regionalValue = formats[variableList[i]](regionalValue);
-		}
-		else{
-			projValue = formats.other(projValue);
-			regionalValue = formats.other(regionalValue);
-		}
-		var description = '';
-		if ( variableMap[variableList[i]].description !== ''){
-			description = ' <span data-toggle="tooltip" data-placement="right" title="' + variableMap[variableList[i]].description + '" class="glyphicon glyphicon-info-sign" aria-hidden="true"></span>';
-		}
-		tBody.append(
-			'<tr><td>' +variableMap[variableList[i]].name
-			+ description + '</td><td>' + projValue +  '</td>' + 
-			'<td>' + regionalValue + '</td></tr>'
-		);
+		
 	};
 	summaryTable.append(tBody);
 	return summaryTable;
@@ -920,7 +944,7 @@ function drawChart(data, type){
         tooltip: {
             formatter: function () {
                 return '<b>' + this.x + '</b><br/>' +
-                    this.series.name + ': ' + formats.other(this.y);
+                    this.series.name + ': ' + formats.decimal(this.y);
             }
         },
 
@@ -1026,7 +1050,7 @@ function drawScatter(data){
         	// min: 0,
             title: {
                 enabled: true,
-                text: data.xLabel
+                text: variableMap[data.xLabel].name
             },
             startOnTick: true,
             endOnTick: true,
@@ -1036,22 +1060,23 @@ function drawScatter(data){
         yAxis: {
         	// min: 0,
             title: {
-                text: data.yLabel
+                text: variableMap[data.yLabel].name
             }
         },
         tooltip: {
     		formatter: function(){
     			var tooltipFormats = {};
-    			tooltipFormats.x = typeof formats[data.xlabel] === 'undefined' ? formats.other : formats['Annual Cost'];
-    			tooltipFormats.y = typeof formats[data.ylabel] === 'undefined' ? formats.other : formats['Annual Cost'];
-    			tooltipFormats.r = typeof formats[rVariable] === 'undefined' ? formats.other : formats['Annual Cost'];
-    			tooltipFormats.color = typeof formats[colorVariable] === 'undefined' ? formats.other : formats['Annual Cost'];
+    			console.log(formats[variableMap[xVariable].format])
+    			tooltipFormats.x = formats[variableMap[xVariable].format];
+    			tooltipFormats.y = formats[variableMap[yVariable].format];
+    			tooltipFormats.r = formats[variableMap[rVariable].format];
+    			tooltipFormats.color = formats[variableMap[colorVariable].format];
     			// console.log(tooltipFormats);
     			return '<b>' +this.point.name+'</b><br>' +
-    					data.xLabel + ': '+tooltipFormats.x(this.point.x)+'<br/>' +
-    					data.yLabel + ': '+tooltipFormats.y(this.point.y)+'<br/>' +
-    					rVariable + ': '+tooltipFormats.r(csvMap[this.point.name][0][rVariable])+'<br/>' +
-    					colorVariable + ': '+tooltipFormats.color(csvMap[this.point.name][0][colorVariable])+'<br/>';
+    					variableMap[data.xLabel].name + ': '+tooltipFormats.x(this.point.x)+'<br/>' +
+    					variableMap[data.yLabel].name + ': '+tooltipFormats.y(this.point.y)+'<br/>' +
+    					variableMap[rVariable].name + ': '+tooltipFormats.r(csvMap[this.point.name][0][rVariable])+'<br/>' +
+    					variableMap[colorVariable].name + ': '+tooltipFormats.color(csvMap[this.point.name][0][colorVariable])+'<br/>';
     		}
 		},
         plotOptions: {
@@ -1201,7 +1226,7 @@ function getScatterData(csvRows, countyFilter){
 		
 	});
 	return {
-		description: xVariable + ' vs. ' + yVariable,
+		description: variableMap[xVariable].name + ' vs. ' + variableMap[yVariable].name,
 		data: dataValues,
 		xLabel: xVariable,
 		yLabel: yVariable
@@ -1412,10 +1437,10 @@ function initialize() {
 					row[0] = '<a class="project-row" id="'+row[0].replace(/ /gi, "-")+'-row" href="#' + row[0] + '">' + row[0] + '</a>';
 					for (var i = 0; i < row.length; i++) {
 						if (i === row.length - 1){
-							row[i] = formats['Annual Cost'](row[i]);
+							row[i] = formats.dollar(row[i]);
 						}
 						else if ( i > 2 && !isNaN(row[i])){
-							row[i] = formats.other(row[i]);
+							row[i] = formats.decimal(row[i]);
 						}
 					};
 				});
