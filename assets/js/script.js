@@ -228,6 +228,7 @@ var variableMap = {
 	},
 };
 formats.dollar = d3.format('$,.2s');
+formats.fullDollar = d3.format('$,.2');
 // formats['Current Score'] = d3.format('.2f');
 // formats['Future Score'] = d3.format('.2f');
 formats.decimal = d3.format('.2f');
@@ -306,7 +307,7 @@ $(function() {
 		
 		table = $('#projectTable').DataTable();
 		var row = table.row(this);
-		var id = $(row.data()[1]).text();
+		var id = $(row.data()[0]).text();
 		// console.log(id);
  		if (!filterBool){
  			highlightChartPoint(id);
@@ -1419,7 +1420,8 @@ function initialize() {
 				categories.splice(2, 0, 'Description');
 				// categories.splice(0, 0, 'Map');
 				for (var i = 0; i < categories.length; i++) {
-					tr.append('<th>'+categories[i] + '</th>');
+					var name = typeof variableMap[categories[i]] !== 'undefined' ? variableMap[categories[i]].name : categories[i];
+					tr.append('<th>'+ name + '</th>');
 				};
 				thead.append(tr);
 				table.append(thead);
@@ -1435,11 +1437,13 @@ function initialize() {
 					row.splice(2, 0, description);
 					// row.splice(0, 0, '<a href="#' + row[0] + '">' + row[0] + '</a>')
 					row[0] = '<a class="project-row" id="'+row[0].replace(/ /gi, "-")+'-row" href="#' + row[0] + '">' + row[0] + '</a>';
-					for (var i = 0; i < row.length; i++) {
-						if (i === row.length - 1){
-							row[i] = formats.dollar(row[i]);
+
+					// Start at i = 3 because first 3 elements are non-numerical
+					for (var i = 3; i < row.length; i++) {
+						if (i <= 5 && !isNaN(row[i]) && typeof row[i] !== 'undefined'){
+							row[i] = formats.fullDollar(+row[i]);
 						}
-						else if ( i > 2 && !isNaN(row[i])){
+						else if ( i > 5 && !isNaN(row[i])){
 							row[i] = formats.decimal(row[i]);
 						}
 					};
@@ -1452,7 +1456,11 @@ function initialize() {
 					// 	{"title": "Direction"},
 					// 	{"title": "diff"}
 					// ],
-					// "columnDefs": [
+					"columnDefs": [
+						{ "type": "num-fmt", "targets": 3 },
+						{ "type": "num-fmt", "targets": 4 },
+						{ "type": "num-fmt", "targets": 5 },
+					],
 					// 	// "targets": [ 2 ],
 					// 	// "visible": false
 					// 	// { "type": "num", "targets": 0 }
