@@ -337,13 +337,13 @@ $(function() {
 		if (searchTerm.length > 1){
 			filterBool = true;
 			removeHighlightIds();
-			console.log(searchTerm);
+			// console.log(searchTerm);
 			table = $('#projectTable').DataTable();
 			var rows = table.$('tr', {"filter":"applied"})
-			console.log(rows)
+			// console.log(rows)
 			$.each(rows, function(i, row){
 				id = $($(row).children()[0]).text();
-				console.log(id);
+				// console.log(id);
 				highlightChartPoint(id);
 				searchHighlightIds.push(id);
 				var layers = counters.getLayers();
@@ -788,7 +788,7 @@ function getStationData(layer, source){
 	var data;
 	if (typeof csvData[id] !== 'undefined') {
 		data = csvData[id].data;
-		console.log(data)
+		// console.log(data)
 	}
 	else{
 		$('#chart').html('No data for project ID <b>' + id + '</b>.');
@@ -975,7 +975,7 @@ function highlightChartPoint(id){
 	if (previousProps === null){
 		var p =_.find($('#chart').highcharts().series[0].points, function(obj){return obj.name == id});
 		// var p = $('#chart').highcharts().series[0].data[0];
-		console.log(id);
+		// console.log(id);
 		var color = getColorScale(csvMap[id][0]);
 		// console.log(p);
 		p.update({
@@ -1066,7 +1066,7 @@ function drawScatter(data){
         tooltip: {
     		formatter: function(){
     			var tooltipFormats = {};
-    			console.log(formats[variableMap[xVariable].format])
+    			// console.log(formats[variableMap[xVariable].format])
     			tooltipFormats.x = formats[variableMap[xVariable].format];
     			tooltipFormats.y = formats[variableMap[yVariable].format];
     			tooltipFormats.r = formats[variableMap[rVariable].format];
@@ -1181,8 +1181,8 @@ function matchKey(datapoint, key_variable){
 	return(parseFloat(key_variable[0][datapoint]));
 };
 function convertHex(hex,opacity){
-	if(typeof hex === 'undefined')
-		console.log(hex);
+	// if(typeof hex === 'undefined')
+	// 	console.log(hex);
     hex = hex.replace('#','');
     r = parseInt(hex.substring(0,2), 16);
     g = parseInt(hex.substring(2,4), 16);
@@ -1208,11 +1208,11 @@ function getScatterData(csvRows, countyFilter){
 		// if (countyFilter === '' || typeof countyFilter === 'undefined' || countyFilter === row.County){
 			var pointSize = getPointSize(row);
 			color = getColorScale(row);
-			if (typeof color === 'undefined'){
-				console.log(color);
-				console.log(row);
+			// if (typeof color === 'undefined'){
+			// 	console.log(color);
+			// 	console.log(row);
 
-			}
+			// }
 			var totalObject = {
 				x: +row[xVariable],
 				y: +row[yVariable],
@@ -1238,7 +1238,7 @@ function getColorScale(row){
 	if (typeof scales[colorVariable] === 'undefined'){
 		// console.log(row[colorVariable]);
 		var colorDomain = [+_.min(csvRows,colorVariable)[colorVariable],+_.max(csvRows,colorVariable)[colorVariable]];
-		console.log(colorDomain)
+		// console.log(colorDomain)
 		scales[colorVariable] = d3.scale.quantize()
 		    .domain(colorDomain)
 		    .range(colorbrewer.RdPu.mod7);
@@ -1314,7 +1314,7 @@ function initialize() {
 					var dataArray = [];
 					$.each(variableMap, function(varName, data){
 						if (data.column_chart){
-							console.log(varName);
+							// console.log(varName);
 							dataArray.push(
 								d3.mean(d,function(g) {
 									return g[varName];
@@ -1331,7 +1331,7 @@ function initialize() {
 					var dataArray = [];
 					$.each(variableMap, function(varName, data){
 						if (data.column_chart){
-							console.log(varName);
+							// console.log(varName);
 							dataArray.push(
 								d3.mean(d,function(g) {
 									return g[varName];
