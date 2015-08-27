@@ -1227,7 +1227,7 @@ function getScatterData(csvRows, countyFilter){
 		
 	});
 	return {
-		description: variableMap[xVariable].name + ' vs. ' + variableMap[yVariable].name,
+		description: variableMap[yVariable].name + ' vs. ' + variableMap[xVariable].name,
 		data: dataValues,
 		xLabel: xVariable,
 		yLabel: yVariable
