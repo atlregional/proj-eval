@@ -72,14 +72,14 @@ var projMap, projTypeMap;
 var csvData = {};
 var regionalData, countyData;
 var colorScale;
-var csvMap, countyMap;
+var csvMap, countyMap, geomMap;
 var xVariable = $('#xVariable').val();
 var yVariable = $('#yVariable').val();
 var rVariable = $('#rVariable').val();
 var colorVariable = $('#colorVariable').val();
 var dataValues;
 var newCsv, csv;
-var csvRows;
+var csvRows, filteredRows;
 var previousProps = null;
 var scales = {};
 var jenks = {};
@@ -96,19 +96,19 @@ var colorVariablePreset = 'total_cost'
 var variableMap = {
 	"ID":{
 		"name": "Project ID",
-		"description": "",
+		"description": "ARC project identifier",
 		"column_chart": false,
 		"format": "decimal"
 	},
 	"county":{
 		"name": "County",
-		"description": "",
+		"description": "County of origin",
 		"column_chart": false,
 		"format": "decimal"
 	},
 	"total_cost":{
 		"name": "Cost in Millions",
-		"description": "",
+		"description": "Total cost of project in millions of dollars",
 		"column_chart": false,
 		"format": "dollar"
 	},
@@ -259,7 +259,7 @@ info.update = function (props) {
 		this._div.innerHTML = 'Click a project on the map or chart for more info.'
 		$('#close-chart').hide();
 		$('#data-summary').remove();
-		if (typeof csvRows !== 'undefined'){
+		if (typeof csvRows !== 'undefined' && typeof geomMap !== 'undefined'){
 			var chartData = getScatterData(csvRows);
 			drawScatter(chartData);
 			previousProps = null;
@@ -784,7 +784,7 @@ function getStationData(layer, source){
 	$.each(categories, function(i, varName){
 		if (typeof variableMap[varName] !== 'undefined')
 			categories[i] = variableMap[varName].name;
-		
+
 	});
 	// console.log(csvMap[id]);
 	// console.log(id);
@@ -800,7 +800,7 @@ function getStationData(layer, source){
 	// console.log(data);
 	
 	var chartData = {
-		description: id,
+		description: id + ' Component Scores',
 		categories: categories,
 		data: data,
 		county: countyData[county]
@@ -1195,10 +1195,11 @@ function convertHex(hex,opacity){
     return result;
 }
 function getPointSize(row){
-	var maxSize = _.max(csvRows,rVariable)[rVariable];
-	return +row[rVariable] / maxSize * 20;
+	var maxSize = _.max(filteredRows,rVariable)[rVariable];
+	return Math.sqrt(Math.abs(+row[rVariable])) / Math.sqrt(maxSize) * 20;
+	// return +row[rVariable] / maxSize * 20;
 }
-function getScatterData(csvRows, countyFilter){
+function getScatterData(csvRows, filter){
 	xVariable = $('#xVariable').val();
 	yVariable = $('#yVariable').val();
 	rVariable = $('#rVariable').val();
@@ -1207,8 +1208,24 @@ function getScatterData(csvRows, countyFilter){
 	var color = '#ff0000';
 	// var colorDomain = [_.min(csvRows,colorVariable)[colorVariable],_.max(csvRows,colorVariable)[colorVariable]];
 	// console.log(csvRows);
-	csvRows.forEach(function(row){
-		// if (countyFilter === '' || typeof countyFilter === 'undefined' || countyFilter === row.County){
+	var listOfIds;
+	if (filter === 'bundles'){
+		listOfIds = _.pluck(geomMap.MultiPolygon, ['properties','ID']);
+	}
+	else if (filter === 'individuals'){
+		listOfIds = _.pluck(geomMap.Polygon, ['properties','ID']);
+	}
+	else{
+		listOfIds = d3.keys(csvMap);
+	}
+	console.log(listOfIds.length);
+	filteredRows = csvRows.filter(function(x){
+		return _.indexOf(listOfIds, x.ID) > -1;
+	});
+	console.log(filteredRows.length);
+	filteredRows.forEach(function(row){
+		// if (filter === '' || typeof filter === 'undefined' || (filter === 'bundles' && typeof geomMap[row.ID] !== 'undefined' && geomMap[row.ID][0].properties.Bundle_Nam !== null) || (filter === 'individuals' && typeof geomMap[row.ID] !== 'undefined' && geomMap[row.ID][0].properties.Bundle_Nam === null)){
+			// console.log(geomMap[row.ID][0].properties.Bundle_Nam);
 			var pointSize = getPointSize(row);
 			color = getColorScale(row);
 			// if (typeof color === 'undefined'){
@@ -1240,19 +1257,19 @@ function getColorScale(row){
 	// console.log(colorVariable);
 	if (typeof scales[colorVariable] === 'undefined'){
 		// console.log(row[colorVariable]);
-		var colorDomain = [+_.min(csvRows,colorVariable)[colorVariable],+_.max(csvRows,colorVariable)[colorVariable]];
+		var colorDomain = [+_.min(filteredRows,colorVariable)[colorVariable],+_.max(filteredRows,colorVariable)[colorVariable]];
 		// console.log(colorDomain)
 		scales[colorVariable] = d3.scale.quantize()
 		    .domain(colorDomain)
 		    .range(colorbrewer.RdPu.mod7);
-		// breaks = ss.jenks(csvRows.map(function(d) { return +d[colorVariable]; }), 9);
-		// jenks[colorVariable] = d3.scale.quantile()
-		//     .domain(breaks)
-		//     .range(colorbrewer.RdPu.mod7)
-		return scales[colorVariable](+row[colorVariable]);
+		breaks = ss.jenks(csvRows.map(function(d) { return +d[colorVariable]; }), 9);
+		jenks[colorVariable] = d3.scale.quantile()
+		    .domain(breaks)
+		    .range(colorbrewer.RdPu.mod7)
+		return jenks[colorVariable](+row[colorVariable]);
 	}
 	else{
-		return scales[colorVariable](+row[colorVariable]);
+		return jenks[colorVariable](+row[colorVariable]);
 	}	
 }
 // function filterCounties(county){
@@ -1277,13 +1294,14 @@ function initialize() {
 	$('#yVariable').val(yVariablePreset);
 	$('#rVariable').val(rVariablePreset);
 	$('#colorVariable').val(colorVariablePreset);
-	$('.scatterVariable').change(function(){
-		var countyFilter = ''
-		if (this.id === 'countyFilter'){
-			// countyFilter = this.value;
+	$('.scatter-control').change(function(){
+		var filter = '';
+		if (this.id === 'bundleFilter'){
+			filter = this.value;
+			console.log(filter);
 			// draw map with filtered counties
 		}
-		var chartData = getScatterData(csvRows, countyFilter);
+		var chartData = getScatterData(csvRows, filter);
 		drawScatter(chartData);
 	});
 	$('#colorVariable').change(function(){
@@ -1365,8 +1383,7 @@ function initialize() {
 				.key(function(d) { return d.county; })
 				.map(csv);
 			// console.log(csvMap);
-			var chartData = getScatterData(csv);
-			drawScatter(chartData);
+			
 
 			csv.forEach(function(row){
 				var newRow  = _.clone(row);
@@ -1481,7 +1498,10 @@ function initialize() {
 				});
 				geomMap = d3.nest()
 					.key(function(d) { return d.geometry.type; })
+					// .key(function(d) { return d.properties.ID; })
 					.map(json.features);
+				var chartData = getScatterData(csvRows);
+				drawScatter(chartData);
 				// console.log(geomMap);
 				// console.log(projMap)
 				var stations = [];
