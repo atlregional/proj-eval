@@ -64,7 +64,9 @@ var legend = L.control({position: 'bottomright'});
 var opacityLegend = L.control({position: 'bottomleft'});
 var info = L.control();
 
-colorbrewer.RdPu.mod7 = colorbrewer.RdPu[9];
+colorbrewer.RdPu.mod7 = _.clone(colorbrewer.RdPu[9]);
+colorbrewer.RdPu.mod1 = colorbrewer.RdPu[9];
+colorbrewer.RdPu.mod1.splice(0,8);
 colorbrewer.RdPu.mod7.splice(0,1);
 colorbrewer.RdPu.mod7.splice(0,1);
 var filterBool = false;
@@ -92,7 +94,7 @@ var xVariablePreset = 'current_score'
 var yVariablePreset = 'future_score'
 var rVariablePreset = 'bc_2040'
 var colorVariablePreset = 'total_cost'
-
+var defaultHex = "#f768a1";
 var variableMap = {
 	"ID":{
 		"name": "Project ID",
@@ -179,7 +181,7 @@ var variableMap = {
 		"format": "decimal"
 	},
 	"current_score":{
-		"name": "Need Score",
+		"name": "Current Need",
 		"description": "The sum of the weighted current data points indicating need",
 		"column_chart": false,
 		"format": "decimal"
@@ -221,7 +223,7 @@ var variableMap = {
 		"format": "decimal"
 	},
 	"future_score":{
-		"name": "Performance Score",
+		"name": "Future Performance",
 		"description": "The sum of the weighted future data points indicating performance",
 		"column_chart": false,
 		"format": "decimal"
@@ -250,7 +252,7 @@ info.update = function (props) {
 		this._div.innerHTML = 'Currently viewing project ' + props.ID + closeChartButton;
 		previousProps = props;
 		$('#close-chart').show().removeClass('hidden');
-		$('#chartPanel').append('<div id="data-summary"></div>');
+		// $('#chartPanel').append('<div id="data-summary"></div>');
 	}
 	else{
 		// $('#chartPanel').html( 
@@ -258,7 +260,7 @@ info.update = function (props) {
 		// '');
 		this._div.innerHTML = 'Click a project on the map or chart for more info.'
 		$('#close-chart').hide();
-		$('#data-summary').remove();
+		// $('#data-summary').remove();
 		if (typeof csvRows !== 'undefined' && typeof geomMap !== 'undefined'){
 			var chartData = getScatterData(csvRows);
 			drawScatter(chartData);
@@ -424,6 +426,7 @@ function getFilters(){
 }
 function closeChart(){
 	$('#countyFilter').val('');
+	$('#data-summary').html('');
 	if (previousProps !== null){
 		info.update();
 		location.hash = '';
@@ -581,7 +584,7 @@ function getOpacity(numCount){
 function resetPrevious(){
 	if(typeof previousLayer !== 'undefined' && previousLayer !== null){
 		$('#'+previousLayer.feature.properties.ID.replace(/ /gi, "-")+'-row').closest('tr').removeClass('warning');
-		var color = typeof scales[colorVariable](csvMap[previousLayer.feature.properties.ID][0][colorVariable]) !== 'undefined' ? scales[colorVariable](csvMap[previousLayer.feature.properties.ID][0][colorVariable]) : 'blue';
+		var color = typeof jenks[colorVariable] !== 'undefined' || typeof jenks[colorVariable](csvMap[previousLayer.feature.properties.ID][0][colorVariable]) !== 'undefined' ? jenks[colorVariable](csvMap[previousLayer.feature.properties.ID][0][colorVariable]) : defaultHex;
 		previousLayer.setStyle({
 			fillColor: color,
 			color: color,
@@ -755,7 +758,11 @@ function getStationData(layer, source){
 	}
 	$('#'+id.replace(/ /gi, "-")+'-row').closest('tr').addClass('warning');
 	var description = layer.feature.properties.PRJ_DESC !== null ? toTitleCase(layer.feature.properties.PRJ_DESC) : 'No description';
+	
 	description += closeChartButton;
+	if (layer.feature.properties.Fact_Sheet !== null){
+		description += '<br/><a class="btn btn-default btn-xs" href="'+layer.feature.properties.Fact_Sheet+'"><span class="glyphicon glyphicon-paperclip" aria-hidden="true"></span> View Fact Sheet</a>';
+	}
 	var county = csvMap[id][0].county;
 	// console.log(county);
 	layer.setStyle({
@@ -1043,6 +1050,35 @@ function removeHighlightChartPoint(id){
 	}
 }
 function drawScatter(data){
+	var xBand, yBand, label;
+	if (xVariable === 'current_score' ){
+		xBand = [{ // mark the 0 values for current need
+						color: '#FCFFC5',
+						from: -5,
+						to: 5
+					}];
+	}
+	if (yVariable === 'current_score' ){
+		yBand = [{ // mark the 0 values for current need
+						color: '#FCFFC5',
+						from: -5,
+						to: 5
+					}];
+	}
+	if (yVariable === 'current_score' || xVariable === 'current_score'){
+		label = {
+            items: [{
+                html: 'Projects in yellow are new facilities (i.e., no current need can be determined).',
+                style: {
+                    left: '10px',
+                    top: '220px',
+                    width: '200px',
+                    color: 'black',
+                    "font-size": 'xx-small'
+                }
+            }]
+        };
+	}
 	chart = $('#chart').highcharts({
 		chart: {
 	            zoomType: 'xy',
@@ -1052,9 +1088,10 @@ function drawScatter(data){
         title: {
             text: data.description
         },
-
+        labels: label,
         xAxis: {
         	// min: 0,
+        	plotBands: xBand,
             title: {
                 enabled: true,
                 text: variableMap[data.xLabel].name
@@ -1066,6 +1103,7 @@ function drawScatter(data){
         },
         yAxis: {
         	// min: 0,
+        	plotBands: yBand,
             title: {
                 text: variableMap[data.yLabel].name
             }
@@ -1073,17 +1111,25 @@ function drawScatter(data){
         tooltip: {
     		formatter: function(){
     			var tooltipFormats = {};
+    			var tooltipString = '';
     			// console.log(formats[variableMap[xVariable].format])
     			tooltipFormats.x = formats[variableMap[xVariable].format];
     			tooltipFormats.y = formats[variableMap[yVariable].format];
-    			tooltipFormats.r = formats[variableMap[rVariable].format];
-    			tooltipFormats.color = formats[variableMap[colorVariable].format];
+
+    			tooltipString += '<b>' +this.point.name+'</b><br>' +
+		    					 variableMap[data.xLabel].name + ': '+tooltipFormats.x(this.point.x)+'<br/>' +
+		    					 variableMap[data.yLabel].name + ': '+tooltipFormats.y(this.point.y)+'<br/>' ;
+    			if (rVariable !== 'none'){
+    				tooltipFormats.r = formats[variableMap[rVariable].format];
+    				tooltipString += variableMap[rVariable].name + ': '+tooltipFormats.r(csvMap[this.point.name][0][rVariable])+'<br/>';
+    			}
+    			if (colorVariable !== 'none'){
+    				tooltipFormats.color = formats[variableMap[colorVariable].format];
+    				tooltipString += variableMap[colorVariable].name + ': '+tooltipFormats.color(csvMap[this.point.name][0][colorVariable])+'<br/>';
+    			}
     			// console.log(tooltipFormats);
-    			return '<b>' +this.point.name+'</b><br>' +
-    					variableMap[data.xLabel].name + ': '+tooltipFormats.x(this.point.x)+'<br/>' +
-    					variableMap[data.yLabel].name + ': '+tooltipFormats.y(this.point.y)+'<br/>' +
-    					variableMap[rVariable].name + ': '+tooltipFormats.r(csvMap[this.point.name][0][rVariable])+'<br/>' +
-    					variableMap[colorVariable].name + ': '+tooltipFormats.color(csvMap[this.point.name][0][colorVariable])+'<br/>';
+    			return tooltipString;
+    					
     		}
 		},
         plotOptions: {
@@ -1158,9 +1204,10 @@ function drawScatter(data){
             //         enabled : true,
             //         // radius : 2
             // },
-            color: scales[colorVariable].range()
+            color: '#ddd'
         }]
     });
+	
 }
 jQuery.unparam = function (value) {
     if (value.length > 1 && value.charAt(0) == '#'){
@@ -1199,8 +1246,13 @@ function convertHex(hex,opacity){
     return result;
 }
 function getPointSize(row){
-	var maxSize = _.max(filteredRows,rVariable)[rVariable];
-	return Math.sqrt(Math.abs(+row[rVariable])) / Math.sqrt(maxSize) * 20;
+	if (rVariable !== 'none'){
+		var maxSize = _.max(filteredRows,rVariable)[rVariable];
+		return Math.sqrt(Math.abs(+row[rVariable])) / Math.sqrt(maxSize) * 20;
+	}
+	else {
+		return 4;
+	}
 	// return +row[rVariable] / maxSize * 20;
 }
 function getScatterData(csvRows, filter){
@@ -1259,13 +1311,16 @@ function getScatterData(csvRows, filter){
 function getColorScale(row){
 	// console.log(row);
 	// console.log(colorVariable);
-	if (typeof scales[colorVariable] === 'undefined'){
+	if (colorVariable === 'none'){
+		return defaultHex;
+	}
+	else if (typeof jenks[colorVariable] === 'undefined'){
 		// console.log(row[colorVariable]);
 		var colorDomain = [+_.min(filteredRows,colorVariable)[colorVariable],+_.max(filteredRows,colorVariable)[colorVariable]];
 		// console.log(colorDomain)
-		scales[colorVariable] = d3.scale.quantize()
-		    .domain(colorDomain)
-		    .range(colorbrewer.RdPu.mod7);
+		// scales[colorVariable] = d3.scale.quantize()
+		//     .domain(colorDomain)
+		//     .range(colorbrewer.RdPu.mod7);
 		breaks = ss.jenks(csvRows.map(function(d) { return +d[colorVariable]; }), 9);
 		jenks[colorVariable] = d3.scale.quantile()
 		    .domain(breaks)
@@ -1291,13 +1346,27 @@ function initialize() {
 
 	$.each(variableMap, function(csvVar, data){
 		// var selected = i === 1 ? '' : 'selected';
-		selected = ''
-		$('.scatterVariable').append('<option value=' + csvVar + ' ' + selected + '>' + data.name + '</option>');	
+		if (csvVar !== 'ID' && csvVar !== 'county'){
+			selected = '';
+			$('.scatterVariable').append('<option value=' + csvVar + ' ' + selected + '>' + data.name + '</option>');	
+		}
 	});
-	$('#xVariable').val(xVariablePreset);
-	$('#yVariable').val(yVariablePreset);
-	$('#rVariable').val(rVariablePreset);
-	$('#colorVariable').val(colorVariablePreset);
+	$('.scatterVariable').change(function(){
+		// console.log(this.id);
+		// console.log(this.value);
+		var $variableDesc = $('#' + this.id + '-description');
+		var description = typeof variableMap[this.value] !== 'undefined' ? variableMap[this.value].description : '';
+		$variableDesc.html(description);
+		if (this.id === 'xVariable' && this.value === 'current_score'){
+			// $variableDesc.append('<br/><strong>Note:</strong> Highlighted yellow region shows new projects that by definition do not have a current need (hence a zero value for ' + variableMap[this.value].name)
+		}
+	});
+	$('#rVariable').prepend('<option value="none">None</option>')
+	$('#colorVariable').prepend('<option value="none">None</option>')
+	$('#xVariable').val(xVariablePreset).trigger('change');
+	$('#yVariable').val(yVariablePreset).trigger('change');
+	$('#rVariable').val(rVariablePreset).trigger('change');
+	$('#colorVariable').val(colorVariablePreset).trigger('change');
 	$('.scatter-control').change(function(){
 		var filter = '';
 		if (this.id === 'bundleFilter'){

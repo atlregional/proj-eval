@@ -268,6 +268,7 @@
 <div id="chartSide" class="col-sm-6">
 	<div id="chartPanel" style="height:500px;">
 		<div id="chart"></div>
+		<div id="data-summary"></div>
 		<div id="chartControls">
 			<!-- <p>Click a project on the map or chart for more info</p> -->
 			<!-- <p><strong>OR</strong></p> -->
@@ -279,12 +280,14 @@
 						<label class="control-label" for="xVariable">x</label>
 						<select type="text" id="xVariable" style="width:200px" class="form-control scatterVariable scatter-control" >
 						</select> 
+						<p class="small" id="xVariable-description">this variable does this</p>
 					</div>
 					<!-- vs. -->
 					<div class="form-group">
 						<label class="control-label" for="yVariable">y</label>
 						<select type="text" id="yVariable" style="width:200px" class="form-control scatterVariable scatter-control" >
 						</select>
+						<p class="small" id="yVariable-description">this variable does this</p>
 					</div>
 					<!-- <label class="control-label" for="bundleFilter">Filter by project</label>
 					<select  class="scatter-control" id="bundleFilter">
@@ -299,12 +302,14 @@
 						<label class="control-label" for="rVariable">radius</label>
 						<select type="text" id="rVariable" style="width:200px" class="form-control scatterVariable scatter-control" >
 						</select> 
+						<p class="small" id="rVariable-description">this variable does this</p>
 					</div>
 					<!-- vs. -->
 					<div class="form-group">
 						<label class="control-label" for="colorVariable">color</label>
 						<select type="text" id="colorVariable" style="width:200px" class="form-control scatterVariable scatter-control" >
 						</select> 
+						<p class="small" id="colorVariable-description">this variable does this</p>
 					</div>
 					<label class="control-label" for="countyFilter">Filter by county</label>
 					<select  id="countyFilter">
