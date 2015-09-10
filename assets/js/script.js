@@ -1071,7 +1071,7 @@ function drawScatter(data){
                 html: 'Projects in yellow are new facilities (i.e., no current need can be determined).',
                 style: {
                     left: '10px',
-                    top: '220px',
+                    top: '215px',
                     width: '200px',
                     color: 'black',
                     "font-size": 'xx-small'
