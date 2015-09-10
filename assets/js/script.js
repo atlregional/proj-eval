@@ -781,6 +781,10 @@ function getStationData(layer, source){
 	categories.splice(index, 1);
 	index = categories.indexOf('bc_2040');
 	categories.splice(index, 1);
+	index = categories.indexOf('current_score');
+	categories.splice(index, 1);
+	index = categories.indexOf('future_score');
+	categories.splice(index, 1);
 	$.each(categories, function(i, varName){
 		if (typeof variableMap[varName] !== 'undefined')
 			categories[i] = variableMap[varName].name;
@@ -806,7 +810,7 @@ function getStationData(layer, source){
 		county: countyData[county]
 	};
 	var variableList = ['current_score', 'future_score', 'total_cost', 'bc_2015', 'bc_2040'];
-	drawChart(chartData, 'totals');
+	drawBarChart(chartData, 'totals');
 	var summaryString = getSummaryString(variableList, csvMap[id][0]);
 	$('#data-summary')
 		.html('')
@@ -919,7 +923,7 @@ function getSummaryString(variableList, row){
 	summaryTable.append(tBody);
 	return summaryTable;
 }
-function drawChart(data, type){
+function drawBarChart(data, type){
 	// console.log(data.county);
 	chart = $('#chart').highcharts({
 		chart: {
